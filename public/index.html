@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>TTL Data Viewer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>TTL Data Viewer</h1>
+    <button id="connectButton">Connect to Serial Port</button>
+    
+    <h2>Received Messages</h2>
+    <div id="data" class="message-box"></div>
+
+    <h2>Send Message</h2>
+    <form id="messageForm">
+      <label for="message">Message:</label>
+      <input type="text" id="message" required>
+      <button type="submit">Send</button>
+    </form>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
