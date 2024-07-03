@@ -1,18 +1,36 @@
 const socket = io();
 const connectButton = document.getElementById('connectButton');
 const dataDiv = document.getElementById('data');
+const baudRateInput = document.getElementById('baudRateInput');
+const setBaudRateButton = document.getElementById('setBaudRateButton');
+let baudRate;
 let ports = [];
 let readers = [];
 let writers = [];
 let localMessages = new Set();
 
+setBaudRateButton.addEventListener('click', () => {
+  const baudRateValue = baudRateInput.value.trim();
+  if (baudRateValue) {
+    baudRate = parseInt(baudRateValue, 10);
+    alert(`Baud rate set to ${baudRate}`);
+  } else {
+    alert('Please enter baud rate');
+  }
+});
+
 connectButton.addEventListener('click', async () => {
+  if (!baudRate) {
+    alert('Please enter baud rate');
+    return;
+  }
+
   try {
     console.log('Connecting to serial port...');
 
     // Connect to the serial port
     const port = await navigator.serial.requestPort();
-    await port.open({ baudRate: 115200 });
+    await port.open({ baudRate: baudRate });
     const reader = port.readable.getReader();
     const writer = port.writable.getWriter();
 
@@ -58,21 +76,37 @@ async function readPort(reader) {
   }
 }
 
-function displayMessage(message) {
+function displayMessage(message, type = 'received') {
+  const messageContainer = document.createElement('div');
+  messageContainer.classList.add(type === 'sent' ? 'message-sent' : 'message-received');
+
   const p = document.createElement('p');
   p.innerText = message;
-  dataDiv.appendChild(p);
+  messageContainer.appendChild(p);
 
-  // Add a divider
-  const hr = document.createElement('hr');
-  hr.classList.add('message-divider');
-  dataDiv.appendChild(hr);
+  // Get the current time
+  const now = new Date();
+  const timeString = now.toLocaleTimeString(); // Get HH:MM:SS format
+
+  // Create a span for the time
+  const timeSpan = document.createElement('span');
+  timeSpan.innerText = timeString;
+  timeSpan.classList.add('message-time');
+
+  // Append the time span to the message container
+  messageContainer.appendChild(timeSpan);
+
+  dataDiv.appendChild(messageContainer);
+
+  // Scroll to the bottom of the message box
+  dataDiv.scrollTop = dataDiv.scrollHeight;
 }
 
+// Update the existing socket on message event to use the 'received' type
 socket.on('message', (message) => {
   console.log(`Message received: ${message}`);
   if (!localMessages.has(message)) { // Check if the message is already displayed locally
-    displayMessage(message);
+    displayMessage(message, 'received');
     localMessages.add(message); // Add message to the local set to avoid re-displaying
   }
 });
@@ -85,7 +119,7 @@ form.addEventListener('submit', (e) => {
     console.log(`Sending message: ${message}`);
     sendMessage(message);
     document.getElementById('message').value = ''; // Clear the input field after sending the message
-    displayMessage(message); // Display the message immediately after sending
+    displayMessage(message, 'sent'); // Display the message immediately after sending
     localMessages.add(message); // Add message to the local set
   } else {
     console.error('No connected serial ports available to send the message.');

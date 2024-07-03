@@ -83,4 +83,61 @@ body {
   button[type="submit"]:hover {
     background-color: #218838;
   }
-  
+  .message-received {
+    text-align: left;
+    background-color: #d4edda;
+    padding: 1px 10px; 
+    border-radius: 20px;
+    margin: 2px 0; 
+    width: fit-content;
+    max-width: 60%;
+    word-wrap: break-word;
+    position: relative; 
+}
+
+.message-sent {
+    text-align: right;
+    background-color: #cce5ff;
+    padding: 1px 10px; 
+    border-radius: 20px;
+    margin: 2px 0; 
+    margin-left: auto;
+    width: fit-content;
+    max-width: 60%;
+    word-wrap: break-word;
+    position: relative;
+}
+
+.message-time {
+    font-size: 0.8em;
+    color: #555;
+    font-style: italic;
+    margin-left: 10px;
+    display: none; 
+}
+
+.message-sent:hover .message-time,
+.message-received:hover .message-time {
+    display: inline; 
+}
+#baudRateInput {
+  margin-right: 10px;
+  padding: 5px;
+  font-size: 16px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+#setBaudRateButton {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+#setBaudRateButton:hover {
+  background-color: #218838;
+}
