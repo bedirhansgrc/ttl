@@ -7,7 +7,6 @@ let baudRate;
 let ports = [];
 let readers = [];
 let writers = [];
-let localMessages = new Set();
 
 setBaudRateButton.addEventListener('click', () => {
   const baudRateValue = baudRateInput.value.trim();
@@ -28,13 +27,11 @@ connectButton.addEventListener('click', async () => {
   try {
     console.log('Connecting to serial port...');
 
-    // Connect to the serial port
     const port = await navigator.serial.requestPort();
     await port.open({ baudRate: baudRate });
     const reader = port.readable.getReader();
     const writer = port.writable.getWriter();
 
-    // Add port, reader, and writer to arrays
     ports.push(port);
     readers.push(reader);
     writers.push(writer);
@@ -48,7 +45,7 @@ connectButton.addEventListener('click', async () => {
 });
 
 async function readPort(reader) {
-  let buffer = new Uint8Array(); // Buffer to accumulate incoming data
+  let buffer = new Uint8Array();
 
   while (true) {
     const { value, done } = await reader.read();
@@ -60,21 +57,18 @@ async function readPort(reader) {
       const newBuffer = new Uint8Array(buffer.length + value.length);
       newBuffer.set(buffer);
       newBuffer.set(value, buffer.length);
-      buffer = newBuffer; // Accumulate data in buffer
+      buffer = newBuffer;
     }
 
-    // Process each complete message in the buffer
     let newlineIndex;
-    while ((newlineIndex = buffer.indexOf(10)) !== -1) { // 10, '\n' karakterinin ASCII kodu
+    while ((newlineIndex = buffer.indexOf(10)) !== -1) {
       const completeMessage = new TextDecoder().decode(buffer.slice(0, newlineIndex)).trim();
       buffer = buffer.slice(newlineIndex + 1);
-      if (completeMessage) { // Check if message is not empty
+      if (completeMessage) {
         console.log(`Data received: ${completeMessage}`);
-        if (!localMessages.has(completeMessage)) { // Check if the message is already displayed locally
-          socket.emit('message', completeMessage); // Emit message through WebSocket
-          displayMessage(completeMessage); // Display message locally
-          localMessages.add(completeMessage); // Add message to the local set
-        }
+
+        socket.emit('message', completeMessage);
+        displayMessage(completeMessage);
       }
     }
   }
@@ -88,43 +82,35 @@ function displayMessage(message, type = 'received') {
   p.innerText = message;
   messageContainer.appendChild(p);
 
-  // Get the current time
   const now = new Date();
-  const timeString = now.toLocaleTimeString(); // Get HH:MM:SS format
+  const timeString = now.toLocaleTimeString();
 
-  // Create a span for the time
   const timeSpan = document.createElement('span');
   timeSpan.innerText = timeString;
   timeSpan.classList.add('message-time');
 
-  // Append the time span to the message container
   messageContainer.appendChild(timeSpan);
 
   dataDiv.appendChild(messageContainer);
 
-  // Scroll to the bottom of the message box
   dataDiv.scrollTop = dataDiv.scrollHeight;
 }
 
-// Update the existing socket on message event to use the 'received' type
 socket.on('message', (message) => {
   console.log(`Message received: ${message}`);
-  if (!localMessages.has(message)) { // Check if the message is already displayed locally
-    displayMessage(message, 'received');
-    localMessages.add(message); // Add message to the local set to avoid re-displaying
-  }
+  displayMessage(message, 'received');
 });
 
 const form = document.getElementById('messageForm');
 form.addEventListener('submit', (e) => {
   e.preventDefault();
-  const message = document.getElementById('message').value.trim(); // Trim whitespace
-  if (message && writers.length > 0) { // Check if message is not empty and at least one writer exists
-    console.log(`Sending message: ${message}`);
-    sendMessage(message);
-    document.getElementById('message').value = ''; // Clear the input field after sending the message
-    displayMessage(message, 'sent'); // Display the message immediately after sending
-    localMessages.add(message); // Add message to the local set
+  const message = document.getElementById('message').value.trim();
+  if (message && writers.length > 0) {
+    const messageWithSender = `${message}`;
+    console.log(`Sending message: ${messageWithSender}`);
+    sendMessage(messageWithSender);
+    document.getElementById('message').value = '';
+    displayMessage(message, 'sent');
   } else {
     console.error('No connected serial ports available to send the message.');
   }
@@ -133,7 +119,6 @@ form.addEventListener('submit', (e) => {
 async function sendMessage(message) {
   const data = new TextEncoder().encode(message + '\n');
   try {
-    // Send the message to all connected ports
     for (const writer of writers) {
       await writer.write(data);
     }
