@@ -1,14 +1,19 @@
 const socket = io();
 const connectButton = document.getElementById('connectButton');
+const portSelect = document.getElementById('portSelect');
 const dataDiv = document.getElementById('data');
 const baudRateInput = document.getElementById('baudRateInput');
 const setBaudRateButton = document.getElementById('setBaudRateButton');
+const exportButton = document.getElementById('exportButton');
+const pairedStatus = document.getElementById('pairedStatus');
 let baudRate;
 let ports = [];
 let readers = [];
 let writers = [];
 let messageCount = 0;
 let pinnedMessages = [];
+let allMessages = [];
+let isConnected = false;  // Bağlantı durumunu izlemek için
 
 document.addEventListener('DOMContentLoaded', (event) => {
   baudRateInput.value = 115200;
@@ -43,11 +48,34 @@ connectButton.addEventListener('click', async () => {
     writers.push(writer);
 
     console.log(`Connected to port ${ports.length}`);
+    isConnected = true;  // Bağlantı durumunu güncelle
+    pairedStatus.style.display = 'inline';  // Bağlandığında "Paired" yazısını göster
 
     readPort(reader);
   } catch (error) {
     console.error('Error connecting to serial port:', error);
+    isConnected = false;  // Bağlantı başarısız olursa durumu güncelle
   }
+});
+
+exportButton.addEventListener('click', () => {
+  if (allMessages.length === 0) {
+    alert('No messages to export.');
+    return;
+  }
+  const exportData = allMessages.map((message, index) => ({
+    number: index + 1,
+    message: message
+  }));
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'messages.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 });
 
 async function readPort(reader) {
@@ -103,6 +131,7 @@ function displayMessage(message, type = 'received') {
 
   // Mesaj sadece gönderen porttan ise 'messageList' kısmına ekleyelim
   if (type === 'sent') {
+    allMessages.push(message); // Mesajı listeye ekle
     const messageList = document.getElementById('messageList');
     const messageListItem = document.createElement('div');
     messageListItem.classList.add('message-item');
@@ -129,15 +158,8 @@ function displayMessage(message, type = 'received') {
     const deleteButton = document.createElement('button');
     deleteButton.classList.add('delete-button');
     deleteButton.innerText = '🗑️';
-    deleteButton.addEventListener('click', () => deleteMessage(messageListItem));
+    deleteButton.addEventListener('click', () => deleteMessage(messageListItem, message));
     messageListItem.appendChild(deleteButton);
-
-    // İndirme butonu ekleyelim
-    const downloadButton = document.createElement('button');
-    downloadButton.classList.add('download-button');
-    downloadButton.innerText = '⬇️';
-    downloadButton.addEventListener('click', () => downloadMessage(message, messageCount));
-    messageListItem.appendChild(downloadButton);
 
     // Yeniden gönderme butonu ekleyelim
     const resendButton = document.createElement('button');
@@ -149,6 +171,13 @@ function displayMessage(message, type = 'received') {
     // En son gelen mesajın en üste gelmesi için prepend kullanıyoruz
     messageList.prepend(messageListItem);
   }
+}
+
+function deleteMessage(messageItem, message) {
+  const messageList = document.getElementById('messageList');
+  messageList.removeChild(messageItem);
+  pinnedMessages = pinnedMessages.filter(item => item !== messageItem);
+  allMessages = allMessages.filter(msg => msg !== message); // Mesajı listeden çıkar
 }
 
 function togglePinMessage(messageItem) {
@@ -189,25 +218,6 @@ function togglePinMessage(messageItem) {
   }
 }
 
-function deleteMessage(messageItem) {
-  const messageList = document.getElementById('messageList');
-  messageList.removeChild(messageItem);
-  pinnedMessages = pinnedMessages.filter(item => item !== messageItem);
-}
-
-function downloadMessage(message, messageNumber) {
-  const messageData = { message: message };
-  const blob = new Blob([JSON.stringify(messageData, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `message-${messageNumber}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
 function resendMessage(message) {
   sendMessage(message);
 }
@@ -229,6 +239,11 @@ form.addEventListener('submit', (e) => {
 });
 
 async function sendMessage(message) {
+  if (!baudRate || !isConnected) {  // Baud rate ve bağlantı durumu kontrolü
+    alert('Please set the baud rate and connect to a serial port before sending a message.');
+    return;
+  }
+
   const data = new TextEncoder().encode(message + '\n');
   try {
     for (let i = 0; i < writers.length; i++) {

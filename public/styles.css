@@ -6,7 +6,7 @@ body {
   display: flex;
   flex-direction: row;
   justify-content: center;
-  gap: 20px; /* Container'lar arası boşluk */
+  gap: 20px;
 }
 
 .container {
@@ -225,17 +225,20 @@ button[type="submit"]:hover {
   color: darkred;
 }
 
-.download-button {
-  background-color: transparent;
+.export-button {
+  background-color: #007bff;
+  color: white;
   border: none;
+  padding: 10px 20px;
+  margin-top: 10px;
   cursor: pointer;
+  border-radius: 5px;
   font-size: 16px;
-  margin-left: 10px;
-  color: blue;
+  width: 100%;
 }
 
-.download-button:hover {
-  color: darkblue;
+.export-button:hover {
+  background-color: #0056b3;
 }
 
 .resend-button {
@@ -249,4 +252,9 @@ button[type="submit"]:hover {
 
 .resend-button:hover {
   color: darkgreen;
+}
+
+#pairedStatus {
+  color: green;
+  margin-left: 10px;
 }
