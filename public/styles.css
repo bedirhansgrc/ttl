@@ -196,15 +196,31 @@ padding: 5px;
 flex: 1;
 text-align: center;
 font-weight: bold;
+font-size: 14px;
 }
 
 .message-number {
 flex: 1;
 text-align: center;
 font-weight: bold;
+font-size: 14px;
 }
 
 .message-text {
 flex: 4;
 padding-left: 10px;
+font-size: 14px;
 }
+.pinned-message {
+  background-color: #ffd700; 
+  border: 2px solid #ffa500;
+}
+
+.pin-button {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  margin-left: 10px;
+}
+

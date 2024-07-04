@@ -8,6 +8,7 @@ let ports = [];
 let readers = [];
 let writers = [];
 let messageCount = 0;
+let pinnedMessages = [];
 
 setBaudRateButton.addEventListener('click', () => {
   const baudRateValue = baudRateInput.value.trim();
@@ -118,8 +119,32 @@ function displayMessage(message, portId, type = 'received') {
   messageText.innerText = message;
   messageListItem.appendChild(messageText);
 
+  // Pin butonu ekleyelim
+  const pinButton = document.createElement('button');
+  pinButton.classList.add('pin-button');
+  pinButton.innerText = '📌';
+  pinButton.addEventListener('click', () => togglePinMessage(messageListItem));
+  messageListItem.appendChild(pinButton);
+
   // En son gelen mesajın en üste gelmesi için prepend kullanıyoruz
   messageList.prepend(messageListItem);
+}
+
+function togglePinMessage(messageItem) {
+  const messageList = document.getElementById('messageList');
+  if (messageItem.classList.contains('pinned-message')) {
+    // Unpin
+    messageItem.classList.remove('pinned-message');
+    pinnedMessages = pinnedMessages.filter(item => item !== messageItem);
+    messageList.appendChild(messageItem); // Unpinned mesajı listenin sonuna taşı
+  } else {
+    // Pin
+    messageItem.classList.add('pinned-message');
+    pinnedMessages.unshift(messageItem);
+    pinnedMessages.forEach(pinnedMessage => {
+      messageList.prepend(pinnedMessage);
+    });
+  }
 }
 
 socket.on('message', ({ message, portId }) => {
