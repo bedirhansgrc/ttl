@@ -10,6 +10,10 @@ let writers = [];
 let messageCount = 0;
 let pinnedMessages = [];
 
+document.addEventListener('DOMContentLoaded', (event) => {
+  baudRateInput.value = 115200;
+});
+
 setBaudRateButton.addEventListener('click', () => {
   const baudRateValue = baudRateInput.value.trim();
   if (baudRateValue) {
@@ -40,13 +44,13 @@ connectButton.addEventListener('click', async () => {
 
     console.log(`Connected to port ${ports.length}`);
 
-    readPort(reader, ports.length);
+    readPort(reader);
   } catch (error) {
     console.error('Error connecting to serial port:', error);
   }
 });
 
-async function readPort(reader, portId) {
+async function readPort(reader) {
   let buffer = new Uint8Array();
 
   while (true) {
@@ -67,17 +71,17 @@ async function readPort(reader, portId) {
       const completeMessage = new TextDecoder().decode(buffer.slice(0, newlineIndex)).trim();
       buffer = buffer.slice(newlineIndex + 1);
       if (completeMessage) {
-        console.log(`Data received on Port${portId}: ${completeMessage}`);
+        console.log(`Data received: ${completeMessage}`);
 
         // Tüm portlara mesajı gönderiyoruz
-        socket.emit('message', { message: completeMessage, portId: `Port${portId}` });
-        displayMessage(completeMessage, `Port${portId}`, 'received'); // Mesajı alıcı portta da göster
+        socket.emit('message', { message: completeMessage });
+        displayMessage(completeMessage, 'received'); // Mesajı alıcı portta da göster
       }
     }
   }
 }
 
-function displayMessage(message, portId, type = 'received') {
+function displayMessage(message, type = 'received') {
   const messageContainer = document.createElement('div');
   messageContainer.classList.add(type === 'sent' ? 'message-sent' : 'message-received');
 
@@ -97,37 +101,54 @@ function displayMessage(message, portId, type = 'received') {
   dataDiv.appendChild(messageContainer);
   dataDiv.scrollTop = dataDiv.scrollHeight;
 
-  // Message list container'a da ekleyelim
-  const messageList = document.getElementById('messageList');
-  const messageListItem = document.createElement('div');
-  messageListItem.classList.add('message-item');
+  // Mesaj sadece gönderen porttan ise 'messageList' kısmına ekleyelim
+  if (type === 'sent') {
+    const messageList = document.getElementById('messageList');
+    const messageListItem = document.createElement('div');
+    messageListItem.classList.add('message-item');
 
-  // Port ID ekleyelim
-  const messagePort = document.createElement('div');
-  messagePort.classList.add('message-port');
-  messagePort.innerText = portId; // Port ID ekleyelim
-  messageListItem.appendChild(messagePort);
+    // Mesaj numarasını ekleyelim
+    const messageNumber = document.createElement('div');
+    messageNumber.classList.add('message-number');
+    messageNumber.innerText = ++messageCount; // Mesaj numarasını artırarak ekleyelim
+    messageListItem.appendChild(messageNumber);
 
-  // Mesaj numarasını ekleyelim
-  const messageNumber = document.createElement('div');
-  messageNumber.classList.add('message-number');
-  messageNumber.innerText = ++messageCount; // Mesaj numarasını artırarak ekleyelim
-  messageListItem.appendChild(messageNumber);
+    const messageText = document.createElement('div');
+    messageText.classList.add('message-text');
+    messageText.innerText = message;
+    messageListItem.appendChild(messageText);
 
-  const messageText = document.createElement('div');
-  messageText.classList.add('message-text');
-  messageText.innerText = message;
-  messageListItem.appendChild(messageText);
+    // Pin butonu ekleyelim
+    const pinButton = document.createElement('button');
+    pinButton.classList.add('pin-button');
+    pinButton.innerText = '📌';
+    pinButton.addEventListener('click', () => togglePinMessage(messageListItem));
+    messageListItem.appendChild(pinButton);
 
-  // Pin butonu ekleyelim
-  const pinButton = document.createElement('button');
-  pinButton.classList.add('pin-button');
-  pinButton.innerText = '📌';
-  pinButton.addEventListener('click', () => togglePinMessage(messageListItem));
-  messageListItem.appendChild(pinButton);
+    // Silme butonu ekleyelim
+    const deleteButton = document.createElement('button');
+    deleteButton.classList.add('delete-button');
+    deleteButton.innerText = '🗑️';
+    deleteButton.addEventListener('click', () => deleteMessage(messageListItem));
+    messageListItem.appendChild(deleteButton);
 
-  // En son gelen mesajın en üste gelmesi için prepend kullanıyoruz
-  messageList.prepend(messageListItem);
+    // İndirme butonu ekleyelim
+    const downloadButton = document.createElement('button');
+    downloadButton.classList.add('download-button');
+    downloadButton.innerText = '⬇️';
+    downloadButton.addEventListener('click', () => downloadMessage(message, messageCount));
+    messageListItem.appendChild(downloadButton);
+
+    // Yeniden gönderme butonu ekleyelim
+    const resendButton = document.createElement('button');
+    resendButton.classList.add('resend-button');
+    resendButton.innerText = '🔄';
+    resendButton.addEventListener('click', () => resendMessage(message));
+    messageListItem.appendChild(resendButton);
+
+    // En son gelen mesajın en üste gelmesi için prepend kullanıyoruz
+    messageList.prepend(messageListItem);
+  }
 }
 
 function togglePinMessage(messageItem) {
@@ -136,20 +157,64 @@ function togglePinMessage(messageItem) {
     // Unpin
     messageItem.classList.remove('pinned-message');
     pinnedMessages = pinnedMessages.filter(item => item !== messageItem);
-    messageList.appendChild(messageItem); // Unpinned mesajı listenin sonuna taşı
+    
+    // Unpin yapıldıktan sonra mesajı doğru konuma yerleştir
+    messageList.removeChild(messageItem);
+    
+    // Pinned mesajlar üstte kalacak şekilde sıralayalım
+    const unpinnedMessages = Array.from(messageList.children);
+    unpinnedMessages.push(messageItem);
+    unpinnedMessages.sort((a, b) => {
+      const aNumber = parseInt(a.querySelector('.message-number').innerText, 10);
+      const bNumber = parseInt(b.querySelector('.message-number').innerText, 10);
+      return bNumber - aNumber; // Büyükten küçüğe sıralama
+    });
+    
+    // Pinned mesajları tekrar ekleyelim
+    pinnedMessages.forEach(pinnedMessage => {
+      messageList.prepend(pinnedMessage);
+    });
+
+    // Unpinned mesajları sıralanmış şekilde ekleyelim
+    unpinnedMessages.forEach(msg => {
+      if (!msg.classList.contains('pinned-message')) {
+        messageList.appendChild(msg);
+      }
+    });
   } else {
     // Pin
     messageItem.classList.add('pinned-message');
     pinnedMessages.unshift(messageItem);
-    pinnedMessages.forEach(pinnedMessage => {
-      messageList.prepend(pinnedMessage);
-    });
+    messageList.prepend(messageItem);
   }
 }
 
-socket.on('message', ({ message, portId }) => {
-  console.log(`Message received on Port${portId}: ${message}`);
-  displayMessage(message, portId, 'received');
+function deleteMessage(messageItem) {
+  const messageList = document.getElementById('messageList');
+  messageList.removeChild(messageItem);
+  pinnedMessages = pinnedMessages.filter(item => item !== messageItem);
+}
+
+function downloadMessage(message, messageNumber) {
+  const messageData = { message: message };
+  const blob = new Blob([JSON.stringify(messageData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `message-${messageNumber}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function resendMessage(message) {
+  sendMessage(message);
+}
+
+socket.on('message', ({ message }) => {
+  console.log(`Message received: ${message}`);
+  displayMessage(message, 'received');
 });
 
 const form = document.getElementById('messageForm');
@@ -166,16 +231,13 @@ form.addEventListener('submit', (e) => {
 async function sendMessage(message) {
   const data = new TextEncoder().encode(message + '\n');
   try {
-    const senderPortId = `Port${writers.length}`; // Gönderici port ID'si
     for (let i = 0; i < writers.length; i++) {
       await writers[i].write(data);
       console.log(`Message sent from Port${i + 1}: ${message}`);
-      if (`Port${i + 1}` === senderPortId) {
-        displayMessage(message, `Port${i + 1}`, 'sent'); // Gönderilen mesajın port ID'sini ekliyoruz
-      }
+      displayMessage(message, 'sent'); // Gönderilen mesajın port ID'sini ekliyoruz
     }
     // Gönderici portu dışında tüm portlara mesajı gönderiyoruz
-    socket.emit('message', { message, portId: senderPortId });
+    socket.emit('message', { message });
   } catch (error) {
     console.error('Error sending message:', error);
   }
