@@ -7,6 +7,7 @@ let baudRate;
 let ports = [];
 let readers = [];
 let writers = [];
+let messageCount = 0;
 
 setBaudRateButton.addEventListener('click', () => {
   const baudRateValue = baudRateInput.value.trim();
@@ -37,14 +38,14 @@ connectButton.addEventListener('click', async () => {
     writers.push(writer);
 
     console.log(`Connected to port ${ports.length}`);
-    
-    readPort(reader);
+
+    readPort(reader, ports.length);
   } catch (error) {
     console.error('Error connecting to serial port:', error);
   }
 });
 
-async function readPort(reader) {
+async function readPort(reader, portId) {
   let buffer = new Uint8Array();
 
   while (true) {
@@ -65,16 +66,17 @@ async function readPort(reader) {
       const completeMessage = new TextDecoder().decode(buffer.slice(0, newlineIndex)).trim();
       buffer = buffer.slice(newlineIndex + 1);
       if (completeMessage) {
-        console.log(`Data received: ${completeMessage}`);
+        console.log(`Data received on Port${portId}: ${completeMessage}`);
 
-        socket.emit('message', completeMessage);
-        displayMessage(completeMessage);
+        // Tüm portlara mesajı gönderiyoruz
+        socket.emit('message', { message: completeMessage, portId: `Port${portId}` });
+        displayMessage(completeMessage, `Port${portId}`, 'received'); // Mesajı alıcı portta da göster
       }
     }
   }
 }
 
-function displayMessage(message, type = 'received') {
+function displayMessage(message, portId, type = 'received') {
   const messageContainer = document.createElement('div');
   messageContainer.classList.add(type === 'sent' ? 'message-sent' : 'message-received');
 
@@ -92,37 +94,63 @@ function displayMessage(message, type = 'received') {
   messageContainer.appendChild(timeSpan);
 
   dataDiv.appendChild(messageContainer);
-
   dataDiv.scrollTop = dataDiv.scrollHeight;
+
+  // Message list container'a da ekleyelim
+  const messageList = document.getElementById('messageList');
+  const messageListItem = document.createElement('div');
+  messageListItem.classList.add('message-item');
+
+  // Port ID ekleyelim
+  const messagePort = document.createElement('div');
+  messagePort.classList.add('message-port');
+  messagePort.innerText = portId; // Port ID ekleyelim
+  messageListItem.appendChild(messagePort);
+
+  // Mesaj numarasını ekleyelim
+  const messageNumber = document.createElement('div');
+  messageNumber.classList.add('message-number');
+  messageNumber.innerText = ++messageCount; // Mesaj numarasını artırarak ekleyelim
+  messageListItem.appendChild(messageNumber);
+
+  const messageText = document.createElement('div');
+  messageText.classList.add('message-text');
+  messageText.innerText = message;
+  messageListItem.appendChild(messageText);
+
+  // En son gelen mesajın en üste gelmesi için prepend kullanıyoruz
+  messageList.prepend(messageListItem);
 }
 
-socket.on('message', (message) => {
-  console.log(`Message received: ${message}`);
-  displayMessage(message, 'received');
+socket.on('message', ({ message, portId }) => {
+  console.log(`Message received on Port${portId}: ${message}`);
+  displayMessage(message, portId, 'received');
 });
 
 const form = document.getElementById('messageForm');
+
 form.addEventListener('submit', (e) => {
   e.preventDefault();
   const message = document.getElementById('message').value.trim();
-  if (message && writers.length > 0) {
-    const messageWithSender = `${message}`;
-    console.log(`Sending message: ${messageWithSender}`);
-    sendMessage(messageWithSender);
+  if (message) {
+    sendMessage(message);
     document.getElementById('message').value = '';
-    displayMessage(message, 'sent');
-  } else {
-    console.error('No connected serial ports available to send the message.');
   }
 });
 
 async function sendMessage(message) {
   const data = new TextEncoder().encode(message + '\n');
   try {
-    for (const writer of writers) {
-      await writer.write(data);
+    const senderPortId = `Port${writers.length}`; // Gönderici port ID'si
+    for (let i = 0; i < writers.length; i++) {
+      await writers[i].write(data);
+      console.log(`Message sent from Port${i + 1}: ${message}`);
+      if (`Port${i + 1}` === senderPortId) {
+        displayMessage(message, `Port${i + 1}`, 'sent'); // Gönderilen mesajın port ID'sini ekliyoruz
+      }
     }
-    console.log(`Message sent: ${message}`);
+    // Gönderici portu dışında tüm portlara mesajı gönderiyoruz
+    socket.emit('message', { message, portId: senderPortId });
   } catch (error) {
     console.error('Error sending message:', error);
   }

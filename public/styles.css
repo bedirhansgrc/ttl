@@ -1,143 +1,210 @@
 body {
-    font-family: 'Arial', sans-serif;
-    background-color: #f4f4f4;
-    margin: 0;
-    padding: 20px;
-  }
-  
-  .container {
-    max-width: 800px;
-    margin: 0 auto;
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  }
-  
-  h1, h2 {
-    font-family: 'Georgia', serif;
-    color: #333;
-  }
-  
-  button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    margin-bottom: 20px;
-    cursor: pointer;
-    border-radius: 5px;
-    font-size: 16px;
-  }
-  
-  button:hover {
-    background-color: #0056b3;
-  }
-  
-  .message-box {
-    border: 1px solid #ccc;
-    padding: 10px;
-    height: 300px;
-    overflow-y: auto;
-    background-color: #e9ecef;
-    border-radius: 5px;
-    margin-bottom: 20px;
-  }
-  
-  .message-divider {
-    border: none;
-    border-top: 1px solid #ccc;
-    margin: 0;
-  }
-  
-  form {
-    display: flex;
-    flex-direction: column;
-  }
-  
-  label {
-    margin-bottom: 5px;
-    font-weight: bold;
-  }
-  
-  input, button[type="submit"] {
-    padding: 10px;
-    margin-bottom: 10px;
-    font-size: 16px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-  }
-  
-  input:focus, button[type="submit"]:focus {
-    outline: none;
-    border-color: #007bff;
-  }
-  
-  button[type="submit"] {
-    background-color: #28a745;
-    color: white;
-    border: none;
-    cursor: pointer;
-  }
-  
-  button[type="submit"]:hover {
-    background-color: #218838;
-  }
-  .message-received {
-    text-align: left;
-    background-color: #d4edda;
-    padding: 1px 10px; 
-    border-radius: 20px;
-    margin: 2px 0; 
-    width: fit-content;
-    max-width: 60%;
-    word-wrap: break-word;
-    position: relative; 
+  font-family: 'Arial', sans-serif;
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 20px; /* Container'lar arası boşluk */
 }
 
-.message-sent {
-    text-align: right;
-    background-color: #cce5ff;
-    padding: 1px 10px; 
-    border-radius: 20px;
-    margin: 2px 0; 
-    margin-left: auto;
-    width: fit-content;
-    max-width: 60%;
-    word-wrap: break-word;
-    position: relative;
+.container {
+  max-width: 800px;
+  width: 48%;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-.message-time {
-    font-size: 0.8em;
-    color: #555;
-    font-style: italic;
-    margin-left: 10px;
-    display: none; 
+#messageListContainer {
+  width: 35%;
 }
 
-.message-sent:hover .message-time,
-.message-received:hover .message-time {
-    display: inline; 
-}
-#baudRateInput {
-  margin-right: 10px;
-  padding: 5px;
-  font-size: 16px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
+h1, h2 {
+  font-family: 'Georgia', serif;
+  color: #333;
 }
 
-#setBaudRateButton {
-  background-color: #28a745;
+button {
+  background-color: #007bff;
   color: white;
   border: none;
-  padding: 5px 10px;
+  padding: 10px 20px;
+  margin-bottom: 20px;
   cursor: pointer;
   border-radius: 5px;
   font-size: 16px;
 }
 
-#setBaudRateButton:hover {
+button:hover {
+  background-color: #0056b3;
+}
+
+.message-box {
+  border: 1px solid #ccc;
+  padding: 10px;
+  height: 300px;
+  overflow-y: auto;
+  background-color: #e9ecef;
+  border-radius: 5px;
+  margin-bottom: 20px;
+}
+
+.message-divider {
+  border: none;
+  border-top: 1px solid #ccc;
+  margin: 10px 0;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+input, button[type="submit"] {
+  padding: 10px;
+  margin-bottom: 10px;
+  font-size: 16px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+input:focus, button[type="submit"]:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+button[type="submit"] {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+button[type="submit"]:hover {
   background-color: #218838;
+}
+
+.message-received {
+  text-align: left;
+  background-color: #d4edda;
+  padding: 1px 10px; 
+  border-radius: 20px;
+  margin: 2px 0; 
+  width: fit-content;
+  max-width: 60%;
+  word-wrap: break-word;
+  position: relative; 
+}
+
+.message-sent {
+  text-align: right;
+  background-color: #cce5ff;
+  padding: 1px 10px; 
+  border-radius: 20px;
+  margin: 2px 0; 
+  margin-left: auto;
+  width: fit-content;
+  max-width: 60%;
+  word-wrap: break-word;
+  position: relative;
+}
+
+.message-time {
+  font-size: 0.8em;
+  color: #555;
+  font-style: italic;
+  margin-left: 10px;
+  display: none; 
+}
+
+.message-sent:hover .message-time,
+.message-received:hover .message-time {
+  display: inline; 
+}
+
+#baudRateInput {
+margin-right: 10px;
+padding: 5px;
+font-size: 16px;
+border-radius: 5px;
+border: 1px solid #ccc;
+}
+
+#setBaudRateButton {
+background-color: #28a745;
+color: white;
+border: none;
+padding: 5px 10px;
+cursor: pointer;
+border-radius: 5px;
+font-size: 16px;
+}
+
+#setBaudRateButton:hover {
+background-color: #218838;
+}
+
+.message-list-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+border-bottom: 1px solid #ccc;
+padding-bottom: 5px;
+margin-bottom: 10px;
+}
+
+.header-port, .header-number, .header-message {
+font-weight: bold;
+padding: 5px;
+}
+
+.header-port {
+flex: 1;
+text-align: center;
+border-right: 1px solid #ccc;
+}
+
+.header-number {
+flex: 1;
+text-align: center;
+border-right: 1px solid #ccc;
+}
+
+.header-message {
+flex: 4;
+text-align: left;
+padding-left: 10px;
+}
+
+.message-item {
+display: flex;
+justify-content: space-between;
+align-items: center;
+border-bottom: 1px solid #ccc;
+padding: 5px;
+}
+
+.message-port {
+flex: 1;
+text-align: center;
+font-weight: bold;
+}
+
+.message-number {
+flex: 1;
+text-align: center;
+font-weight: bold;
+}
+
+.message-text {
+flex: 4;
+padding-left: 10px;
 }
