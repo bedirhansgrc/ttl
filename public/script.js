@@ -48,7 +48,7 @@ connectButton.addEventListener('click', async () => {
 });
 
 async function readPort(reader) {
-  let buffer = ''; // Buffer to accumulate incoming data
+  let buffer = new Uint8Array(); // Buffer to accumulate incoming data
 
   while (true) {
     const { value, done } = await reader.read();
@@ -56,14 +56,18 @@ async function readPort(reader) {
       console.log('Serial port reading finished');
       break;
     }
-    const decodedValue = new TextDecoder().decode(value);
-    buffer += decodedValue; // Accumulate data in buffer
+    if (value) {
+      const newBuffer = new Uint8Array(buffer.length + value.length);
+      newBuffer.set(buffer);
+      newBuffer.set(value, buffer.length);
+      buffer = newBuffer; // Accumulate data in buffer
+    }
 
     // Process each complete message in the buffer
     let newlineIndex;
-    while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
-      const completeMessage = buffer.substring(0, newlineIndex).trim();
-      buffer = buffer.substring(newlineIndex + 1);
+    while ((newlineIndex = buffer.indexOf(10)) !== -1) { // 10, '\n' karakterinin ASCII kodu
+      const completeMessage = new TextDecoder().decode(buffer.slice(0, newlineIndex)).trim();
+      buffer = buffer.slice(newlineIndex + 1);
       if (completeMessage) { // Check if message is not empty
         console.log(`Data received: ${completeMessage}`);
         if (!localMessages.has(completeMessage)) { // Check if the message is already displayed locally
