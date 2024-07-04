@@ -13,7 +13,7 @@ let writers = [];
 let messageCount = 0;
 let pinnedMessages = [];
 let allMessages = [];
-let isConnected = false;  // Bağlantı durumunu izlemek için
+let isConnected = false;
 
 document.addEventListener('DOMContentLoaded', (event) => {
   baudRateInput.value = 115200;
@@ -48,13 +48,13 @@ connectButton.addEventListener('click', async () => {
     writers.push(writer);
 
     console.log(`Connected to port ${ports.length}`);
-    isConnected = true;  // Bağlantı durumunu güncelle
-    pairedStatus.style.display = 'inline';  // Bağlandığında "Paired" yazısını göster
+    isConnected = true; 
+    pairedStatus.style.display = 'inline'; 
 
     readPort(reader);
   } catch (error) {
     console.error('Error connecting to serial port:', error);
-    isConnected = false;  // Bağlantı başarısız olursa durumu güncelle
+    isConnected = false;  
   }
 });
 
@@ -100,10 +100,8 @@ async function readPort(reader) {
       buffer = buffer.slice(newlineIndex + 1);
       if (completeMessage) {
         console.log(`Data received: ${completeMessage}`);
-
-        // Tüm portlara mesajı gönderiyoruz
         socket.emit('message', { message: completeMessage });
-        displayMessage(completeMessage, 'received'); // Mesajı alıcı portta da göster
+        displayMessage(completeMessage, 'received');
       }
     }
   }
@@ -129,17 +127,15 @@ function displayMessage(message, type = 'received') {
   dataDiv.appendChild(messageContainer);
   dataDiv.scrollTop = dataDiv.scrollHeight;
 
-  // Mesaj sadece gönderen porttan ise 'messageList' kısmına ekleyelim
   if (type === 'sent') {
-    allMessages.push(message); // Mesajı listeye ekle
+    allMessages.push(message);
     const messageList = document.getElementById('messageList');
     const messageListItem = document.createElement('div');
     messageListItem.classList.add('message-item');
 
-    // Mesaj numarasını ekleyelim
     const messageNumber = document.createElement('div');
     messageNumber.classList.add('message-number');
-    messageNumber.innerText = ++messageCount; // Mesaj numarasını artırarak ekleyelim
+    messageNumber.innerText = ++messageCount;
     messageListItem.appendChild(messageNumber);
 
     const messageText = document.createElement('div');
@@ -147,28 +143,24 @@ function displayMessage(message, type = 'received') {
     messageText.innerText = message;
     messageListItem.appendChild(messageText);
 
-    // Pin butonu ekleyelim
     const pinButton = document.createElement('button');
     pinButton.classList.add('pin-button');
     pinButton.innerText = '📌';
     pinButton.addEventListener('click', () => togglePinMessage(messageListItem));
     messageListItem.appendChild(pinButton);
 
-    // Silme butonu ekleyelim
     const deleteButton = document.createElement('button');
     deleteButton.classList.add('delete-button');
     deleteButton.innerText = '🗑️';
     deleteButton.addEventListener('click', () => deleteMessage(messageListItem, message));
     messageListItem.appendChild(deleteButton);
 
-    // Yeniden gönderme butonu ekleyelim
     const resendButton = document.createElement('button');
     resendButton.classList.add('resend-button');
     resendButton.innerText = '🔄';
     resendButton.addEventListener('click', () => resendMessage(message));
     messageListItem.appendChild(resendButton);
 
-    // En son gelen mesajın en üste gelmesi için prepend kullanıyoruz
     messageList.prepend(messageListItem);
   }
 }
@@ -177,41 +169,36 @@ function deleteMessage(messageItem, message) {
   const messageList = document.getElementById('messageList');
   messageList.removeChild(messageItem);
   pinnedMessages = pinnedMessages.filter(item => item !== messageItem);
-  allMessages = allMessages.filter(msg => msg !== message); // Mesajı listeden çıkar
+  allMessages = allMessages.filter(msg => msg !== message);
 }
 
 function togglePinMessage(messageItem) {
   const messageList = document.getElementById('messageList');
   if (messageItem.classList.contains('pinned-message')) {
-    // Unpin
+
     messageItem.classList.remove('pinned-message');
     pinnedMessages = pinnedMessages.filter(item => item !== messageItem);
-    
-    // Unpin yapıldıktan sonra mesajı doğru konuma yerleştir
+
     messageList.removeChild(messageItem);
-    
-    // Pinned mesajlar üstte kalacak şekilde sıralayalım
+
     const unpinnedMessages = Array.from(messageList.children);
     unpinnedMessages.push(messageItem);
     unpinnedMessages.sort((a, b) => {
       const aNumber = parseInt(a.querySelector('.message-number').innerText, 10);
       const bNumber = parseInt(b.querySelector('.message-number').innerText, 10);
-      return bNumber - aNumber; // Büyükten küçüğe sıralama
+      return bNumber - aNumber;
     });
-    
-    // Pinned mesajları tekrar ekleyelim
+
     pinnedMessages.forEach(pinnedMessage => {
       messageList.prepend(pinnedMessage);
     });
 
-    // Unpinned mesajları sıralanmış şekilde ekleyelim
     unpinnedMessages.forEach(msg => {
       if (!msg.classList.contains('pinned-message')) {
         messageList.appendChild(msg);
       }
     });
   } else {
-    // Pin
     messageItem.classList.add('pinned-message');
     pinnedMessages.unshift(messageItem);
     messageList.prepend(messageItem);
@@ -239,7 +226,7 @@ form.addEventListener('submit', (e) => {
 });
 
 async function sendMessage(message) {
-  if (!baudRate || !isConnected) {  // Baud rate ve bağlantı durumu kontrolü
+  if (!baudRate || !isConnected) { 
     alert('Please set the baud rate and connect to a serial port before sending a message.');
     return;
   }
@@ -249,9 +236,8 @@ async function sendMessage(message) {
     for (let i = 0; i < writers.length; i++) {
       await writers[i].write(data);
       console.log(`Message sent from Port${i + 1}: ${message}`);
-      displayMessage(message, 'sent'); // Gönderilen mesajın port ID'sini ekliyoruz
+      displayMessage(message, 'sent');
     }
-    // Gönderici portu dışında tüm portlara mesajı gönderiyoruz
     socket.emit('message', { message });
   } catch (error) {
     console.error('Error sending message:', error);
