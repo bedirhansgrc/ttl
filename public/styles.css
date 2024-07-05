@@ -1,5 +1,5 @@
 body {
-  font-family: 'Arial', sans-serif;
+  font-family: "Arial", sans-serif;
   background-color: #f4f4f4;
   margin: 0;
   padding: 20px;
@@ -22,8 +22,9 @@ body {
   width: 35%;
 }
 
-h1, h2 {
-  font-family: 'Georgia', serif;
+h1,
+h2 {
+  font-family: "Georgia", serif;
   color: #333;
 }
 
@@ -68,7 +69,8 @@ label {
   font-weight: bold;
 }
 
-input, button[type="submit"] {
+input,
+button[type="submit"] {
   padding: 10px;
   margin-bottom: 10px;
   font-size: 16px;
@@ -76,7 +78,8 @@ input, button[type="submit"] {
   border: 1px solid #ccc;
 }
 
-input:focus, button[type="submit"]:focus {
+input:focus,
+button[type="submit"]:focus {
   outline: none;
   border-color: #007bff;
 }
@@ -95,21 +98,21 @@ button[type="submit"]:hover {
 .message-received {
   text-align: left;
   background-color: #d4edda;
-  padding: 1px 10px; 
+  padding: 1px 10px;
   border-radius: 20px;
-  margin: 2px 0; 
+  margin: 2px 0;
   width: fit-content;
   max-width: 60%;
   word-wrap: break-word;
-  position: relative; 
+  position: relative;
 }
 
 .message-sent {
   text-align: right;
   background-color: #cce5ff;
-  padding: 1px 10px; 
+  padding: 1px 10px;
   border-radius: 20px;
-  margin: 2px 0; 
+  margin: 2px 0;
   margin-left: auto;
   width: fit-content;
   max-width: 60%;
@@ -122,12 +125,12 @@ button[type="submit"]:hover {
   color: #555;
   font-style: italic;
   margin-left: 10px;
-  display: none; 
+  display: none;
 }
 
 .message-sent:hover .message-time,
 .message-received:hover .message-time {
-  display: inline; 
+  display: inline;
 }
 
 #baudRateInput {
@@ -161,7 +164,8 @@ button[type="submit"]:hover {
   margin-bottom: 10px;
 }
 
-.header-number, .header-message {
+.header-number,
+.header-message {
   font-weight: bold;
   padding: 5px;
 }
@@ -200,7 +204,7 @@ button[type="submit"]:hover {
 }
 
 .pinned-message {
-  background-color: #ffd700; 
+  background-color: #ffd700;
   border: 2px solid #ffa500;
 }
 

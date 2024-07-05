@@ -1,5 +1,6 @@
 const socket = io();
 const connectButton = document.getElementById('connectButton');
+const disconnectButton = document.getElementById('disconnectButton');
 const portSelect = document.getElementById('portSelect');
 const dataDiv = document.getElementById('data');
 const baudRateInput = document.getElementById('baudRateInput');
@@ -13,7 +14,9 @@ let writers = [];
 let messageCount = 0;
 let pinnedMessages = [];
 let allMessages = [];
-let isConnected = false;
+let activePorts = {}; // Hangi portların aktif olduğunu izler
+let isConnected = false; // Genel bağlantı durumu
+let connectedBaudRates = []; // Bağlanan portların baud rate'lerini tutar
 
 document.addEventListener('DOMContentLoaded', (event) => {
   baudRateInput.value = 115200;
@@ -43,18 +46,35 @@ connectButton.addEventListener('click', async () => {
     const reader = port.readable.getReader();
     const writer = port.writable.getWriter();
 
+    const portNumber = ports.length;
     ports.push(port);
     readers.push(reader);
     writers.push(writer);
+    connectedBaudRates.push(baudRate); // Bağlanan portun baud rate'ini kaydet
 
-    console.log(`Connected to port ${ports.length}`);
-    isConnected = true; 
+    console.log(`Connected to port ${portNumber + 1}`);
+    isConnected = true; // Genel bağlantı durumunu güncelle
     pairedStatus.style.display = 'inline'; 
+    activePorts[portNumber] = true; // Portu aktif olarak işaretle
 
-    readPort(reader);
+    readPort(reader, portNumber);  // Port numarasını readPort fonksiyonuna gönderiyoruz
   } catch (error) {
     console.error('Error connecting to serial port:', error);
-    isConnected = false;  
+    isConnected = false; // Genel bağlantı durumunu güncelle
+  }
+});
+
+disconnectButton.addEventListener('click', () => {
+  if (ports.length > 0) {
+    ports.forEach((port, index) => {
+      closePort(index);
+    });
+    alert('All ports disconnected');
+    isConnected = false; // Genel bağlantı durumunu güncelle
+    pairedStatus.style.display = 'none';
+    connectedBaudRates = []; // Bağlanan baud rate'leri sıfırla
+  } else {
+    alert('No ports to disconnect');
   }
 });
 
@@ -78,32 +98,49 @@ exportButton.addEventListener('click', () => {
   URL.revokeObjectURL(url);
 });
 
-async function readPort(reader) {
-  let buffer = new Uint8Array();
+async function readPort(reader, portNumber) {
+  let buffer = '';
+  activePorts[portNumber] = true;
 
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) {
-      console.log('Serial port reading finished');
+  while (isConnected && activePorts[portNumber]) { // Genel bağlantı durumunu ve port durumunu kontrol et
+    try {
+      const { value, done } = await reader.read();
+      if (done) {
+        console.log(`Serial port ${portNumber + 1} reading finished`);
+        delete activePorts[portNumber];
+        break;
+      }
+      if (value) {
+        buffer += new TextDecoder().decode(value);
+        let newlineIndex;
+        while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+          const completeMessage = buffer.slice(0, newlineIndex).trim();
+          buffer = buffer.slice(newlineIndex + 1);
+          if (completeMessage) {
+            console.log(`Data received from port ${portNumber + 1}: ${completeMessage}`);
+            socket.emit('message', { message: completeMessage, port: portNumber + 1 });
+            displayMessage(completeMessage, 'received');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error reading from port:', error);
       break;
     }
-    if (value) {
-      const newBuffer = new Uint8Array(buffer.length + value.length);
-      newBuffer.set(buffer);
-      newBuffer.set(value, buffer.length);
-      buffer = newBuffer;
-    }
+  }
+}
 
-    let newlineIndex;
-    while ((newlineIndex = buffer.indexOf(10)) !== -1) {
-      const completeMessage = new TextDecoder().decode(buffer.slice(0, newlineIndex)).trim();
-      buffer = buffer.slice(newlineIndex + 1);
-      if (completeMessage) {
-        console.log(`Data received: ${completeMessage}`);
-        socket.emit('message', { message: completeMessage });
-        displayMessage(completeMessage, 'received');
-      }
-    }
+function closePort(portNumber) {
+  if (ports[portNumber]) {
+    activePorts[portNumber] = false; // Portu devre dışı bırak
+    readers[portNumber].releaseLock();
+    writers[portNumber].releaseLock();
+    ports[portNumber].close().then(() => {
+      console.log(`Port ${portNumber + 1} closed`);
+      connectedBaudRates.splice(portNumber, 1); // Bağlanan baud rate'leri güncelle
+    }).catch(error => {
+      console.error(`Error closing port ${portNumber + 1}:`, error);
+    });
   }
 }
 
@@ -127,41 +164,45 @@ function displayMessage(message, type = 'received') {
   dataDiv.appendChild(messageContainer);
   dataDiv.scrollTop = dataDiv.scrollHeight;
 
+  // Mesaj gönderildiyse ve listede zaten yoksa ekle
   if (type === 'sent') {
-    allMessages.push(message);
-    const messageList = document.getElementById('messageList');
-    const messageListItem = document.createElement('div');
-    messageListItem.classList.add('message-item');
+    if (!allMessages.includes(message)) {
+      allMessages.push(message);
+      
+      const messageList = document.getElementById('messageList');
+      const messageListItem = document.createElement('div');
+      messageListItem.classList.add('message-item');
 
-    const messageNumber = document.createElement('div');
-    messageNumber.classList.add('message-number');
-    messageNumber.innerText = ++messageCount;
-    messageListItem.appendChild(messageNumber);
+      const messageNumber = document.createElement('div');
+      messageNumber.classList.add('message-number');
+      messageNumber.innerText = ++messageCount;
+      messageListItem.appendChild(messageNumber);
 
-    const messageText = document.createElement('div');
-    messageText.classList.add('message-text');
-    messageText.innerText = message;
-    messageListItem.appendChild(messageText);
+      const messageText = document.createElement('div');
+      messageText.classList.add('message-text');
+      messageText.innerText = message;
+      messageListItem.appendChild(messageText);
 
-    const pinButton = document.createElement('button');
-    pinButton.classList.add('pin-button');
-    pinButton.innerText = '📌';
-    pinButton.addEventListener('click', () => togglePinMessage(messageListItem));
-    messageListItem.appendChild(pinButton);
+      const pinButton = document.createElement('button');
+      pinButton.classList.add('pin-button');
+      pinButton.innerText = '📌';
+      pinButton.addEventListener('click', () => togglePinMessage(messageListItem));
+      messageListItem.appendChild(pinButton);
 
-    const deleteButton = document.createElement('button');
-    deleteButton.classList.add('delete-button');
-    deleteButton.innerText = '🗑️';
-    deleteButton.addEventListener('click', () => deleteMessage(messageListItem, message));
-    messageListItem.appendChild(deleteButton);
+      const deleteButton = document.createElement('button');
+      deleteButton.classList.add('delete-button');
+      deleteButton.innerText = '🗑️';
+      deleteButton.addEventListener('click', () => deleteMessage(messageListItem, message));
+      messageListItem.appendChild(deleteButton);
 
-    const resendButton = document.createElement('button');
-    resendButton.classList.add('resend-button');
-    resendButton.innerText = '🔄';
-    resendButton.addEventListener('click', () => resendMessage(message));
-    messageListItem.appendChild(resendButton);
+      const resendButton = document.createElement('button');
+      resendButton.classList.add('resend-button');
+      resendButton.innerText = '🔄';
+      resendButton.addEventListener('click', () => resendMessage(message));
+      messageListItem.appendChild(resendButton);
 
-    messageList.prepend(messageListItem);
+      messageList.prepend(messageListItem);
+    }
   }
 }
 
@@ -175,7 +216,6 @@ function deleteMessage(messageItem, message) {
 function togglePinMessage(messageItem) {
   const messageList = document.getElementById('messageList');
   if (messageItem.classList.contains('pinned-message')) {
-
     messageItem.classList.remove('pinned-message');
     pinnedMessages = pinnedMessages.filter(item => item !== messageItem);
 
@@ -209,7 +249,35 @@ function resendMessage(message) {
   sendMessage(message);
 }
 
+async function sendMessage(message) {
+  if (!baudRate || Object.keys(activePorts).length === 0) { 
+    alert('Please set the baud rate and connect to a serial port before sending a message.');
+    return;
+  }
+
+  const uniqueBaudRates = [...new Set(connectedBaudRates)];
+  if (uniqueBaudRates.length > 1) {
+    alert('Baud rates do not match across all connected ports.');
+    return;
+  }
+
+  const data = new TextEncoder().encode(message + '\n');
+  try {
+    for (let i = 0; i < writers.length; i++) {
+      if (activePorts[i]) {
+        await writers[i].write(data);
+        console.log(`Message sent from Port${i + 1}: ${message}`);
+        displayMessage(message, 'sent');
+      }
+    }
+    socket.emit('message', { message, port: writers.length });  // Port sayısını da gönderiyoruz
+  } catch (error) {
+    console.error('Error sending message:', error);
+  }
+}
+
 socket.on('message', ({ message }) => {
+  if (!isConnected) return;  // Genel bağlantı durumu kontrolü
   console.log(`Message received: ${message}`);
   displayMessage(message, 'received');
 });
@@ -224,22 +292,3 @@ form.addEventListener('submit', (e) => {
     document.getElementById('message').value = '';
   }
 });
-
-async function sendMessage(message) {
-  if (!baudRate || !isConnected) { 
-    alert('Please set the baud rate and connect to a serial port before sending a message.');
-    return;
-  }
-
-  const data = new TextEncoder().encode(message + '\n');
-  try {
-    for (let i = 0; i < writers.length; i++) {
-      await writers[i].write(data);
-      console.log(`Message sent from Port${i + 1}: ${message}`);
-      displayMessage(message, 'sent');
-    }
-    socket.emit('message', { message });
-  } catch (error) {
-    console.error('Error sending message:', error);
-  }
-}
