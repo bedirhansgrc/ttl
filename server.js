@@ -22,7 +22,7 @@ io.on('connection', (socket) => {
 
   socket.on('message', (message) => {
     console.log('Message received:', message);
-    
+
     // Mesajın daha önce alınmış olup olmadığını kontrol et
     if (allMessages.includes(message.message)) {
       console.log(`Message '${message.message}' already received, not processing again.`);
@@ -40,6 +40,7 @@ io.on('connection', (socket) => {
     console.log('A user disconnected');
   });
 });
+
 
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

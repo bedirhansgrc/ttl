@@ -18,10 +18,6 @@ let activePorts = {}; // Hangi portların aktif olduğunu izler
 let isConnected = false; // Genel bağlantı durumu
 let connectedBaudRates = []; // Bağlanan portların baud rate'lerini tutar
 
-document.addEventListener('DOMContentLoaded', (event) => {
-  baudRateInput.value = 115200;
-});
-
 setBaudRateButton.addEventListener('click', () => {
   const baudRateValue = baudRateInput.value.trim();
   if (baudRateValue) {
@@ -50,17 +46,25 @@ connectButton.addEventListener('click', async () => {
     ports.push(port);
     readers.push(reader);
     writers.push(writer);
-    connectedBaudRates.push(baudRate); // Bağlanan portun baud rate'ini kaydet
+
+    // Diğer portlarla baud rate karşılaştırması yap
+    if (connectedBaudRates.length > 0 && connectedBaudRates.some(rate => rate !== baudRate)) {
+      alert('Connected baud rates do not match. Disconnecting port.');
+      await closePort(portNumber);
+      return;
+    }
+
+    connectedBaudRates.push(baudRate);
 
     console.log(`Connected to port ${portNumber + 1}`);
-    isConnected = true; // Genel bağlantı durumunu güncelle
-    pairedStatus.style.display = 'inline'; 
-    activePorts[portNumber] = true; // Portu aktif olarak işaretle
+    isConnected = true;
+    pairedStatus.style.display = 'inline';
+    activePorts[portNumber] = true;
 
-    readPort(reader, portNumber);  // Port numarasını readPort fonksiyonuna gönderiyoruz
+    readPort(reader, portNumber);
   } catch (error) {
     console.error('Error connecting to serial port:', error);
-    isConnected = false; // Genel bağlantı durumunu güncelle
+    isConnected = false;
   }
 });
 
@@ -100,9 +104,10 @@ exportButton.addEventListener('click', () => {
 
 async function readPort(reader, portNumber) {
   let buffer = '';
+  const decoder = new TextDecoder('utf-8');
   activePorts[portNumber] = true;
 
-  while (isConnected && activePorts[portNumber]) { // Genel bağlantı durumunu ve port durumunu kontrol et
+  while (isConnected && activePorts[portNumber]) {
     try {
       const { value, done } = await reader.read();
       if (done) {
@@ -111,15 +116,22 @@ async function readPort(reader, portNumber) {
         break;
       }
       if (value) {
-        buffer += new TextDecoder().decode(value);
+        buffer += decoder.decode(value, { stream: true });
         let newlineIndex;
         while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
           const completeMessage = buffer.slice(0, newlineIndex).trim();
           buffer = buffer.slice(newlineIndex + 1);
-          if (completeMessage) {
+          if (completeMessage && !allMessages.includes(completeMessage)) {
+            const uniqueBaudRates = [...new Set(connectedBaudRates)];
+            if (uniqueBaudRates.length > 1) {
+              alert('Baud rates do not match across all connected ports. Disconnecting all ports.');
+              disconnectAllPorts();
+              return;
+            }
             console.log(`Data received from port ${portNumber + 1}: ${completeMessage}`);
             socket.emit('message', { message: completeMessage, port: portNumber + 1 });
             displayMessage(completeMessage, 'received');
+            allMessages.push(completeMessage); // Mesajı listeye ekle
           }
         }
       }
@@ -128,6 +140,16 @@ async function readPort(reader, portNumber) {
       break;
     }
   }
+}
+
+function disconnectAllPorts() {
+  ports.forEach((port, index) => {
+    closePort(index);
+  });
+  alert('All ports disconnected due to mismatched baud rates.');
+  isConnected = false;
+  pairedStatus.style.display = 'none';
+  connectedBaudRates = [];
 }
 
 function closePort(portNumber) {
@@ -250,14 +272,14 @@ function resendMessage(message) {
 }
 
 async function sendMessage(message) {
-  if (!baudRate || Object.keys(activePorts).length === 0) { 
+  if (!baudRate || Object.keys(activePorts).length === 0) {
     alert('Please set the baud rate and connect to a serial port before sending a message.');
     return;
   }
 
   const uniqueBaudRates = [...new Set(connectedBaudRates)];
   if (uniqueBaudRates.length > 1) {
-    alert('Baud rates do not match across all connected ports.');
+    alert('Baud rates do not match across all connected ports. Message will not be sent.');
     return;
   }
 
@@ -266,21 +288,31 @@ async function sendMessage(message) {
     for (let i = 0; i < writers.length; i++) {
       if (activePorts[i]) {
         await writers[i].write(data);
-        console.log(`Message sent from Port${i + 1}: ${message}`);
+        console.log(`Message sent from Port ${i + 1}: ${message}`);
         displayMessage(message, 'sent');
       }
     }
-    socket.emit('message', { message, port: writers.length });  // Port sayısını da gönderiyoruz
+    socket.emit('message', { message, port: writers.length });
   } catch (error) {
     console.error('Error sending message:', error);
   }
 }
 
+
 socket.on('message', ({ message }) => {
   if (!isConnected) return;  // Genel bağlantı durumu kontrolü
+
+  // Mesajın daha önce alınmış olup olmadığını kontrol et
+  if (allMessages.includes(message)) {
+    console.log(`Message '${message}' already received, not processing again.`);
+    return;
+  }
+
   console.log(`Message received: ${message}`);
   displayMessage(message, 'received');
+  allMessages.push(message);  // Mesajı allMessages listesine ekle
 });
+
 
 const form = document.getElementById('messageForm');
 
