@@ -1,7 +1,6 @@
 {
   "name": "ttl-project",
   "version": "1.0.0",
-  "description": "",
   "main": "server.js",
   "scripts": {
     "start": "nodemon server.js"
@@ -15,5 +14,7 @@
   },
   "devDependencies": {
     "nodemon": "^2.0.22"
-  }
+  },
+  "keywords": [],
+  "description": ""
 }

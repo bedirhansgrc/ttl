@@ -16,31 +16,51 @@ app.get('/', (req, res) => {
 });
 
 let allMessages = [];  // Tüm mesajların listesini tutmak için bir array
+let connectedBaudRates = {};  // Bağlı tüm baud rate'leri tutmak için bir object
 
 io.on('connection', (socket) => {
   console.log('A user connected');
 
+  socket.on('setBaudRate', (baudRate) => {
+    connectedBaudRates[socket.id] = baudRate;
+
+    const uniqueBaudRates = new Set(Object.values(connectedBaudRates));
+    if (uniqueBaudRates.size > 1) {
+      console.log('Baud rates do not match across all connected ports. Disconnecting all clients.');
+      io.emit('disconnectAll', 'Baud rates do not match across all connected ports.');
+      connectedBaudRates = {};
+      allMessages = [];
+    }
+  });
+
   socket.on('message', (message) => {
     console.log('Message received:', message);
 
-    // Mesajın daha önce alınmış olup olmadığını kontrol et
+    const senderBaudRate = connectedBaudRates[socket.id];
+    const uniqueBaudRates = new Set(Object.values(connectedBaudRates));
+
+    if (uniqueBaudRates.size > 1) {
+      console.log('Baud rates do not match across all connected ports. Disconnecting all clients.');
+      io.emit('disconnectAll', 'Baud rates do not match across all connected ports.');
+      connectedBaudRates = {};
+      allMessages = [];
+      return;
+    }
+
     if (allMessages.includes(message.message)) {
       console.log(`Message '${message.message}' already received, not processing again.`);
       return;
     }
 
-    // Mesajı allMessages listesine ekle
     allMessages.push(message.message);
-
-    // Diğer kullanıcılara yay
     socket.broadcast.emit('message', message);
   });
 
   socket.on('disconnect', () => {
     console.log('A user disconnected');
+    delete connectedBaudRates[socket.id];
   });
 });
-
 
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

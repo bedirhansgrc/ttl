@@ -14,15 +14,16 @@ let writers = [];
 let messageCount = 0;
 let pinnedMessages = [];
 let allMessages = [];
-let activePorts = {}; // Hangi portların aktif olduğunu izler
-let isConnected = false; // Genel bağlantı durumu
-let connectedBaudRates = []; // Bağlanan portların baud rate'lerini tutar
+let activePorts = {};
+let isConnected = false;
+let connectedBaudRates = [];
 
 setBaudRateButton.addEventListener('click', () => {
   const baudRateValue = baudRateInput.value.trim();
   if (baudRateValue) {
     baudRate = parseInt(baudRateValue, 10);
     alert(`Baud rate set to ${baudRate}`);
+    socket.emit('setBaudRate', baudRate);  // Notify server of the baud rate
   } else {
     alert('Please enter baud rate');
   }
@@ -47,8 +48,8 @@ connectButton.addEventListener('click', async () => {
     readers.push(reader);
     writers.push(writer);
 
-    // Diğer portlarla baud rate karşılaştırması yap
-    if (connectedBaudRates.length > 0 && connectedBaudRates.some(rate => rate !== baudRate)) {
+    if (connectedBaudRates.length > 0 && !connectedBaudRates.includes(baudRate)) {
+      console.log('Baud rates do not match. Disconnecting port.');
       alert('Connected baud rates do not match. Disconnecting port.');
       await closePort(portNumber);
       return;
@@ -56,7 +57,7 @@ connectButton.addEventListener('click', async () => {
 
     connectedBaudRates.push(baudRate);
 
-    console.log(`Connected to port ${portNumber + 1}`);
+    console.log(`Connected to port ${portNumber + 1} with baud rate ${baudRate}`);
     isConnected = true;
     pairedStatus.style.display = 'inline';
     activePorts[portNumber] = true;
@@ -74,9 +75,9 @@ disconnectButton.addEventListener('click', () => {
       closePort(index);
     });
     alert('All ports disconnected');
-    isConnected = false; // Genel bağlantı durumunu güncelle
+    isConnected = false;
     pairedStatus.style.display = 'none';
-    connectedBaudRates = []; // Bağlanan baud rate'leri sıfırla
+    connectedBaudRates = [];
   } else {
     alert('No ports to disconnect');
   }
@@ -124,14 +125,15 @@ async function readPort(reader, portNumber) {
           if (completeMessage && !allMessages.includes(completeMessage)) {
             const uniqueBaudRates = [...new Set(connectedBaudRates)];
             if (uniqueBaudRates.length > 1) {
+              console.log('Baud rates do not match. Disconnecting all ports.');
               alert('Baud rates do not match across all connected ports. Disconnecting all ports.');
               disconnectAllPorts();
               return;
             }
             console.log(`Data received from port ${portNumber + 1}: ${completeMessage}`);
-            socket.emit('message', { message: completeMessage, port: portNumber + 1 });
+            socket.emit('message', { message: completeMessage, port: portNumber + 1, baudRate: baudRate });
             displayMessage(completeMessage, 'received');
-            allMessages.push(completeMessage); // Mesajı listeye ekle
+            allMessages.push(completeMessage);
           }
         }
       }
@@ -146,6 +148,7 @@ function disconnectAllPorts() {
   ports.forEach((port, index) => {
     closePort(index);
   });
+  console.log('All ports disconnected due to mismatched baud rates.');
   alert('All ports disconnected due to mismatched baud rates.');
   isConnected = false;
   pairedStatus.style.display = 'none';
@@ -154,12 +157,12 @@ function disconnectAllPorts() {
 
 function closePort(portNumber) {
   if (ports[portNumber]) {
-    activePorts[portNumber] = false; // Portu devre dışı bırak
+    activePorts[portNumber] = false;
     readers[portNumber].releaseLock();
     writers[portNumber].releaseLock();
     ports[portNumber].close().then(() => {
       console.log(`Port ${portNumber + 1} closed`);
-      connectedBaudRates.splice(portNumber, 1); // Bağlanan baud rate'leri güncelle
+      connectedBaudRates.splice(portNumber, 1);
     }).catch(error => {
       console.error(`Error closing port ${portNumber + 1}:`, error);
     });
@@ -186,11 +189,10 @@ function displayMessage(message, type = 'received') {
   dataDiv.appendChild(messageContainer);
   dataDiv.scrollTop = dataDiv.scrollHeight;
 
-  // Mesaj gönderildiyse ve listede zaten yoksa ekle
   if (type === 'sent') {
     if (!allMessages.includes(message)) {
       allMessages.push(message);
-      
+
       const messageList = document.getElementById('messageList');
       const messageListItem = document.createElement('div');
       messageListItem.classList.add('message-item');
@@ -279,7 +281,9 @@ async function sendMessage(message) {
 
   const uniqueBaudRates = [...new Set(connectedBaudRates)];
   if (uniqueBaudRates.length > 1) {
-    alert('Baud rates do not match across all connected ports. Message will not be sent.');
+    console.log('Baud rates do not match. Disconnecting all ports.');
+    alert('Baud rates do not match across all connected ports. Disconnecting all ports.');
+    disconnectAllPorts();
     return;
   }
 
@@ -288,31 +292,15 @@ async function sendMessage(message) {
     for (let i = 0; i < writers.length; i++) {
       if (activePorts[i]) {
         await writers[i].write(data);
-        console.log(`Message sent from Port ${i + 1}: ${message}`);
+        console.log(`Message sent from Port ${i + 1} with baud rate ${baudRate}: ${message}`);
         displayMessage(message, 'sent');
       }
     }
-    socket.emit('message', { message, port: writers.length });
+    socket.emit('message', { message, port: writers.length, baudRate: baudRate });
   } catch (error) {
     console.error('Error sending message:', error);
   }
 }
-
-
-socket.on('message', ({ message }) => {
-  if (!isConnected) return;  // Genel bağlantı durumu kontrolü
-
-  // Mesajın daha önce alınmış olup olmadığını kontrol et
-  if (allMessages.includes(message)) {
-    console.log(`Message '${message}' already received, not processing again.`);
-    return;
-  }
-
-  console.log(`Message received: ${message}`);
-  displayMessage(message, 'received');
-  allMessages.push(message);  // Mesajı allMessages listesine ekle
-});
-
 
 const form = document.getElementById('messageForm');
 
@@ -323,4 +311,22 @@ form.addEventListener('submit', (e) => {
     sendMessage(message);
     document.getElementById('message').value = '';
   }
+});
+
+socket.on('message', ({ message }) => {
+  if (!isConnected) return;
+
+  if (allMessages.includes(message)) {
+    console.log(`Message '${message}' already received, not processing again.`);
+    return;
+  }
+
+  console.log(`Message received: ${message}`);
+  displayMessage(message, 'received');
+  allMessages.push(message);
+});
+
+socket.on('disconnectAll', (reason) => {
+  alert(reason);
+  disconnectAllPorts();
 });
