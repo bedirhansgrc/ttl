@@ -23,7 +23,7 @@ setBaudRateButton.addEventListener('click', () => {
   if (baudRateValue) {
     baudRate = parseInt(baudRateValue, 10);
     alert(`Baud rate set to ${baudRate}`);
-    socket.emit('setBaudRate', baudRate);  // Notify server of the baud rate
+    socket.emit('setBaudRate', baudRate);
   } else {
     alert('Please enter baud rate');
   }
@@ -122,7 +122,7 @@ async function readPort(reader, portNumber) {
         while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
           const completeMessage = buffer.slice(0, newlineIndex).trim();
           buffer = buffer.slice(newlineIndex + 1);
-          if (completeMessage && !allMessages.includes(completeMessage)) {
+          if (completeMessage) {
             const uniqueBaudRates = [...new Set(connectedBaudRates)];
             if (uniqueBaudRates.length > 1) {
               console.log('Baud rates do not match. Disconnecting all ports.');
@@ -133,7 +133,6 @@ async function readPort(reader, portNumber) {
             console.log(`Data received from port ${portNumber + 1}: ${completeMessage}`);
             socket.emit('message', { message: completeMessage, port: portNumber + 1, baudRate: baudRate });
             displayMessage(completeMessage, 'received');
-            allMessages.push(completeMessage);
           }
         }
       }
@@ -189,44 +188,42 @@ function displayMessage(message, type = 'received') {
   dataDiv.appendChild(messageContainer);
   dataDiv.scrollTop = dataDiv.scrollHeight;
 
-  if (type === 'sent') {
-    if (!allMessages.includes(message)) {
-      allMessages.push(message);
+  // Only add to messageList if it is sent by the user
+  if (type === 'sent' && !allMessages.includes(message)) {
+    const messageList = document.getElementById('messageList');
+    const messageListItem = document.createElement('div');
+    messageListItem.classList.add('message-item');
 
-      const messageList = document.getElementById('messageList');
-      const messageListItem = document.createElement('div');
-      messageListItem.classList.add('message-item');
+    const messageNumber = document.createElement('div');
+    messageNumber.classList.add('message-number');
+    messageNumber.innerText = ++messageCount;
+    messageListItem.appendChild(messageNumber);
 
-      const messageNumber = document.createElement('div');
-      messageNumber.classList.add('message-number');
-      messageNumber.innerText = ++messageCount;
-      messageListItem.appendChild(messageNumber);
+    const messageText = document.createElement('div');
+    messageText.classList.add('message-text');
+    messageText.innerText = message;
+    messageListItem.appendChild(messageText);
 
-      const messageText = document.createElement('div');
-      messageText.classList.add('message-text');
-      messageText.innerText = message;
-      messageListItem.appendChild(messageText);
+    const pinButton = document.createElement('button');
+    pinButton.classList.add('pin-button');
+    pinButton.innerText = '📌';
+    pinButton.addEventListener('click', () => togglePinMessage(messageListItem));
+    messageListItem.appendChild(pinButton);
 
-      const pinButton = document.createElement('button');
-      pinButton.classList.add('pin-button');
-      pinButton.innerText = '📌';
-      pinButton.addEventListener('click', () => togglePinMessage(messageListItem));
-      messageListItem.appendChild(pinButton);
+    const deleteButton = document.createElement('button');
+    deleteButton.classList.add('delete-button');
+    deleteButton.innerText = '🗑️';
+    deleteButton.addEventListener('click', () => deleteMessage(messageListItem, message));
+    messageListItem.appendChild(deleteButton);
 
-      const deleteButton = document.createElement('button');
-      deleteButton.classList.add('delete-button');
-      deleteButton.innerText = '🗑️';
-      deleteButton.addEventListener('click', () => deleteMessage(messageListItem, message));
-      messageListItem.appendChild(deleteButton);
+    const resendButton = document.createElement('button');
+    resendButton.classList.add('resend-button');
+    resendButton.innerText = '🔄';
+    resendButton.addEventListener('click', () => resendMessage(message));
+    messageListItem.appendChild(resendButton);
 
-      const resendButton = document.createElement('button');
-      resendButton.classList.add('resend-button');
-      resendButton.innerText = '🔄';
-      resendButton.addEventListener('click', () => resendMessage(message));
-      messageListItem.appendChild(resendButton);
-
-      messageList.prepend(messageListItem);
-    }
+    messageList.prepend(messageListItem);
+    allMessages.push(message); // Add to allMessages after adding to messageList
   }
 }
 
@@ -316,14 +313,13 @@ form.addEventListener('submit', (e) => {
 socket.on('message', ({ message }) => {
   if (!isConnected) return;
 
-  if (allMessages.includes(message)) {
-    console.log(`Message '${message}' already received, not processing again.`);
+  // Prevent the same message from being displayed multiple times in dataDiv
+  if (dataDiv.lastChild && dataDiv.lastChild.querySelector('p').innerText === message) {
     return;
   }
 
   console.log(`Message received: ${message}`);
   displayMessage(message, 'received');
-  allMessages.push(message);
 });
 
 socket.on('disconnectAll', (reason) => {
