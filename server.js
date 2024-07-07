@@ -15,8 +15,8 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-let allMessages = [];  // Tüm mesajların listesini tutmak için bir array
-let connectedBaudRates = {};  // Bağlı tüm baud rate'leri tutmak için bir object
+let allMessages = []; 
+let connectedBaudRates = {};
 
 io.on('connection', (socket) => {
   console.log('A user connected');

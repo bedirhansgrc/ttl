@@ -133,7 +133,6 @@ async function readPort(reader, portNumber) {
             console.log(`Data received from port ${portNumber + 1}: ${completeMessage}`);
             socket.emit('message', { message: completeMessage, port: portNumber + 1, baudRate: baudRate });
             displayMessage(completeMessage, 'received');
-            updateWaveformDisplay(completeMessage); // Yeni dalga formunu güncelliyoruz
           }
         }
       }
@@ -303,6 +302,7 @@ async function sendMessage(message) {
         await writers[i].write(data);
         console.log(`Message sent from Port ${i + 1} with baud rate ${baudRate}: ${message}`);
         displayMessage(message, 'sent');
+        updateWaveformDisplay(message); // Sadece gönderilen mesajlar için dalga formunu güncelliyoruz
       }
     }
     socket.emit('message', { message, port: writers.length, baudRate: baudRate });
@@ -326,14 +326,58 @@ function updateWaveformDisplay(message) {
   const waveformDisplay = document.getElementById('waveformDisplay');
   const fragment = document.createDocumentFragment();
 
-  // Gelen mesajdaki her karakteri kontrol edip dalga formu oluşturuyoruz
+  // İlk bitin bir önceki biti olmadığını varsayıyoruz
+  let previousBit = null;
+  const borderWidth = '2px';  // Tüm çizgiler için aynı kalınlık
+
   for (let i = 0; i < message.length; i++) {
     const bit = message[i];
-    if (bit === '0' || bit === '1') {  // Sadece 0 ve 1 için işlem yap
-      const waveElement = document.createElement('div');
-      waveElement.classList.add('waveform', `waveform-${bit}`);
-      fragment.appendChild(waveElement);
+    
+    // Yalnızca '0' veya '1' karakterlerini işleyin
+    if (bit !== '0' && bit !== '1') {
+      continue;
     }
+    
+    const bitContainer = document.createElement('div');
+    bitContainer.style.display = 'inline-block';
+    bitContainer.style.position = 'relative';
+    bitContainer.style.height = '50px';
+    bitContainer.style.width = '20px';
+
+    const verticalLine = document.createElement('div');
+    verticalLine.style.position = 'absolute';
+    verticalLine.style.width = borderWidth;
+    verticalLine.style.height = '100%';
+    verticalLine.style.backgroundColor = 'grey';
+
+    const horizontalLine = document.createElement('div');
+    horizontalLine.style.position = 'absolute';
+    horizontalLine.style.height = borderWidth;
+    horizontalLine.style.width = '100%';
+
+    if (bit === '0') {
+      horizontalLine.style.bottom = '0';
+      horizontalLine.style.backgroundColor = 'red';
+      if (previousBit === '1') {
+        verticalLine.style.top = '0';
+      } else {
+        verticalLine.style.display = 'none';
+      }
+    } else if (bit === '1') {
+      horizontalLine.style.top = '0';
+      horizontalLine.style.backgroundColor = 'green';
+      if (previousBit === '0') {
+        verticalLine.style.bottom = '0';
+      } else {
+        verticalLine.style.display = 'none';
+      }
+    }
+
+    bitContainer.appendChild(verticalLine);
+    bitContainer.appendChild(horizontalLine);
+
+    fragment.appendChild(bitContainer);
+    previousBit = bit;  // Bir sonraki iterasyon için mevcut biti saklıyoruz
   }
 
   // Dalga formu görüntüsünü güncelliyoruz
@@ -347,7 +391,7 @@ socket.on('message', ({ message }) => {
   // Mesajın daha önce alınıp alınmadığını kontrol et
   if (!allMessages.includes(message)) {
     displayMessage(message, 'received');
-    updateWaveformDisplay(message);  // Yeni dalga formunu güncelliyoruz
+    // Gönderilen mesajlar için dalga formunu göstermiyoruz
   }
 });
 
