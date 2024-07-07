@@ -170,10 +170,6 @@ function closePort(portNumber) {
 
 function displayMessage(message, type = 'received') {
   // Mesajın daha önce alınıp alınmadığını kontrol et
-  if (allMessages.includes(message)) {
-    console.log(`Message '${message}' already received, not displaying again.`);
-    return;
-  }
 
   const messageContainer = document.createElement('div');
   messageContainer.classList.add(type === 'sent' ? 'message-sent' : 'message-received');
@@ -323,6 +319,14 @@ form.addEventListener('submit', (e) => {
 });
 
 function updateWaveformDisplay(message) {
+  // Mesajın sadece 0 ve 1'lerden oluşup oluşmadığını kontrol ediyoruz
+  const isValidMessage = /^[01]+$/.test(message);
+  if (!isValidMessage) {
+    // Geçersiz mesajlar için dalga formunu temizliyoruz
+    document.getElementById('waveformDisplay').innerHTML = '';
+    return;
+  }
+
   const waveformDisplay = document.getElementById('waveformDisplay');
   const fragment = document.createDocumentFragment();
 
@@ -332,11 +336,6 @@ function updateWaveformDisplay(message) {
 
   for (let i = 0; i < message.length; i++) {
     const bit = message[i];
-    
-    // Yalnızca '0' veya '1' karakterlerini işleyin
-    if (bit !== '0' && bit !== '1') {
-      continue;
-    }
     
     const bitContainer = document.createElement('div');
     bitContainer.style.display = 'inline-block';
