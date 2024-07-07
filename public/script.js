@@ -169,8 +169,6 @@ function closePort(portNumber) {
 }
 
 function displayMessage(message, type = 'received') {
-  // Mesajın daha önce alınıp alınmadığını kontrol et
-
   const messageContainer = document.createElement('div');
   messageContainer.classList.add(type === 'sent' ? 'message-sent' : 'message-received');
 
@@ -190,48 +188,46 @@ function displayMessage(message, type = 'received') {
   dataDiv.appendChild(messageContainer);
   dataDiv.scrollTop = dataDiv.scrollHeight;
 
-  // Only add to messageList if it is sent by the user
   if (type === 'sent' && !allMessages.includes(message)) {
-    const messageList = document.getElementById('messageList');
-    const messageListItem = document.createElement('div');
-    messageListItem.classList.add('message-item');
-
-    const messageNumber = document.createElement('div');
-    messageNumber.classList.add('message-number');
-    messageNumber.innerText = ++messageCount;
-    messageListItem.appendChild(messageNumber);
-
-    const messageText = document.createElement('div');
-    messageText.classList.add('message-text');
-    messageText.innerText = message;
-    messageListItem.appendChild(messageText);
-
-    const pinButton = document.createElement('button');
-    pinButton.classList.add('pin-button');
-    pinButton.innerText = '📌';
-    pinButton.addEventListener('click', () => togglePinMessage(messageListItem));
-    messageListItem.appendChild(pinButton);
-
-    const deleteButton = document.createElement('button');
-    deleteButton.classList.add('delete-button');
-    deleteButton.innerText = '🗑️';
-    deleteButton.addEventListener('click', () => deleteMessage(messageListItem, message));
-    messageListItem.appendChild(deleteButton);
-
-    const resendButton = document.createElement('button');
-    resendButton.classList.add('resend-button');
-    resendButton.innerText = '🔄';
-    resendButton.addEventListener('click', () => resendMessage(message));
-    messageListItem.appendChild(resendButton);
-
-    messageList.prepend(messageListItem);
-    allMessages.push(message); // Add to allMessages after adding to messageList
-  }
-
-  // Mesajı allMessages dizisine ekle
-  if (!allMessages.includes(message)) {
+    addToMessageList(message, type);
     allMessages.push(message);
   }
+}
+
+function addToMessageList(message, type) {
+  const messageList = document.getElementById('messageList');
+  const messageListItem = document.createElement('div');
+  messageListItem.classList.add('message-item');
+
+  const messageNumber = document.createElement('div');
+  messageNumber.classList.add('message-number');
+  messageNumber.innerText = ++messageCount;
+  messageListItem.appendChild(messageNumber);
+
+  const messageText = document.createElement('div');
+  messageText.classList.add('message-text');
+  messageText.innerText = message;
+  messageListItem.appendChild(messageText);
+
+  const pinButton = document.createElement('button');
+  pinButton.classList.add('pin-button');
+  pinButton.innerText = '📌';
+  pinButton.addEventListener('click', () => togglePinMessage(messageListItem));
+  messageListItem.appendChild(pinButton);
+
+  const deleteButton = document.createElement('button');
+  deleteButton.classList.add('delete-button');
+  deleteButton.innerText = '🗑️';
+  deleteButton.addEventListener('click', () => deleteMessage(messageListItem, message));
+  messageListItem.appendChild(deleteButton);
+
+  const resendButton = document.createElement('button');
+  resendButton.classList.add('resend-button');
+  resendButton.innerText = '🔄';
+  resendButton.addEventListener('click', () => resendMessage(message));
+  messageListItem.appendChild(resendButton);
+
+  messageList.prepend(messageListItem);
 }
 
 function deleteMessage(messageItem, message) {
@@ -301,6 +297,7 @@ async function sendMessage(message) {
         updateWaveformDisplay(message); // Sadece gönderilen mesajlar için dalga formunu güncelliyoruz
       }
     }
+    // Sadece burada socket.emit kullanıyoruz
     socket.emit('message', { message, port: writers.length, baudRate: baudRate });
   } catch (error) {
     console.error('Error sending message:', error);
@@ -319,10 +316,8 @@ form.addEventListener('submit', (e) => {
 });
 
 function updateWaveformDisplay(message) {
-  // Mesajın sadece 0 ve 1'lerden oluşup oluşmadığını kontrol ediyoruz
   const isValidMessage = /^[01]+$/.test(message);
   if (!isValidMessage) {
-    // Geçersiz mesajlar için dalga formunu temizliyoruz
     document.getElementById('waveformDisplay').innerHTML = '';
     return;
   }
@@ -330,9 +325,8 @@ function updateWaveformDisplay(message) {
   const waveformDisplay = document.getElementById('waveformDisplay');
   const fragment = document.createDocumentFragment();
 
-  // İlk bitin bir önceki biti olmadığını varsayıyoruz
   let previousBit = null;
-  const borderWidth = '2px';  // Tüm çizgiler için aynı kalınlık
+  const borderWidth = '2px';
 
   for (let i = 0; i < message.length; i++) {
     const bit = message[i];
@@ -376,23 +370,24 @@ function updateWaveformDisplay(message) {
     bitContainer.appendChild(horizontalLine);
 
     fragment.appendChild(bitContainer);
-    previousBit = bit;  // Bir sonraki iterasyon için mevcut biti saklıyoruz
+    previousBit = bit;
   }
 
-  // Dalga formu görüntüsünü güncelliyoruz
-  waveformDisplay.innerHTML = '';  // Önceki içeriği temizliyoruz
+  waveformDisplay.innerHTML = '';
   waveformDisplay.appendChild(fragment);
 }
 
 socket.on('message', ({ message }) => {
   if (!isConnected) return;
 
-  // Mesajın daha önce alınıp alınmadığını kontrol et
-  if (!allMessages.includes(message)) {
+  // Alınan mesajın daha önce işlenip işlenmediğini kontrol et
+  const messageKey = `${message.port}-${message.baudRate}-${message.message}`;
+  if (!allMessages.includes(messageKey)) {
     displayMessage(message, 'received');
-    // Gönderilen mesajlar için dalga formunu göstermiyoruz
+    allMessages.push(messageKey); // Alınan mesajları da allMessages dizisine ekle
   }
 });
+
 
 socket.on('disconnectAll', (reason) => {
   alert(reason);

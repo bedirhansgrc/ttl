@@ -15,7 +15,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-let allMessages = []; 
+let allMessages = [];
 let connectedBaudRates = {};
 
 io.on('connection', (socket) => {
@@ -47,13 +47,15 @@ io.on('connection', (socket) => {
       return;
     }
 
-    if (allMessages.includes(message.message)) {
+    // Mesajın daha önce işlenip işlenmediğini kontrol et
+    const messageKey = `${message.port}-${message.baudRate}-${message.message}`;
+    if (allMessages.includes(messageKey)) {
       console.log(`Message '${message.message}' already received, not processing again.`);
       return;
     }
 
-    allMessages.push(message.message);
-    socket.broadcast.emit('message', message);
+    allMessages.push(messageKey);
+    socket.broadcast.emit('message', message); // Sadece diğer istemcilere gönder
   });
 
   socket.on('disconnect', () => {
