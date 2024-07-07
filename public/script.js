@@ -133,6 +133,7 @@ async function readPort(reader, portNumber) {
             console.log(`Data received from port ${portNumber + 1}: ${completeMessage}`);
             socket.emit('message', { message: completeMessage, port: portNumber + 1, baudRate: baudRate });
             displayMessage(completeMessage, 'received');
+            updateWaveformDisplay(completeMessage); // Yeni dalga formunu güncelliyoruz
           }
         }
       }
@@ -169,6 +170,12 @@ function closePort(portNumber) {
 }
 
 function displayMessage(message, type = 'received') {
+  // Mesajın daha önce alınıp alınmadığını kontrol et
+  if (allMessages.includes(message)) {
+    console.log(`Message '${message}' already received, not displaying again.`);
+    return;
+  }
+
   const messageContainer = document.createElement('div');
   messageContainer.classList.add(type === 'sent' ? 'message-sent' : 'message-received');
 
@@ -224,6 +231,11 @@ function displayMessage(message, type = 'received') {
 
     messageList.prepend(messageListItem);
     allMessages.push(message); // Add to allMessages after adding to messageList
+  }
+
+  // Mesajı allMessages dizisine ekle
+  if (!allMessages.includes(message)) {
+    allMessages.push(message);
   }
 }
 
@@ -310,16 +322,33 @@ form.addEventListener('submit', (e) => {
   }
 });
 
+function updateWaveformDisplay(message) {
+  const waveformDisplay = document.getElementById('waveformDisplay');
+  const fragment = document.createDocumentFragment();
+
+  // Gelen mesajdaki her karakteri kontrol edip dalga formu oluşturuyoruz
+  for (let i = 0; i < message.length; i++) {
+    const bit = message[i];
+    if (bit === '0' || bit === '1') {  // Sadece 0 ve 1 için işlem yap
+      const waveElement = document.createElement('div');
+      waveElement.classList.add('waveform', `waveform-${bit}`);
+      fragment.appendChild(waveElement);
+    }
+  }
+
+  // Dalga formu görüntüsünü güncelliyoruz
+  waveformDisplay.innerHTML = '';  // Önceki içeriği temizliyoruz
+  waveformDisplay.appendChild(fragment);
+}
+
 socket.on('message', ({ message }) => {
   if (!isConnected) return;
 
-  // Prevent the same message from being displayed multiple times in dataDiv
-  if (dataDiv.lastChild && dataDiv.lastChild.querySelector('p').innerText === message) {
-    return;
+  // Mesajın daha önce alınıp alınmadığını kontrol et
+  if (!allMessages.includes(message)) {
+    displayMessage(message, 'received');
+    updateWaveformDisplay(message);  // Yeni dalga formunu güncelliyoruz
   }
-
-  console.log(`Message received: ${message}`);
-  displayMessage(message, 'received');
 });
 
 socket.on('disconnectAll', (reason) => {

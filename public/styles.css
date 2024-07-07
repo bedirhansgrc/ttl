@@ -262,3 +262,27 @@ button[type="submit"]:hover {
   color: green;
   margin-left: 10px;
 }
+
+.waveform-box {
+  border: 1px solid #ccc;
+  padding: 10px;
+  height: 300px;
+  overflow-x: auto;
+  white-space: nowrap;
+  background-color: #e9ecef;
+  border-radius: 5px;
+  margin-bottom: 20px;
+  position: relative;
+}
+.waveform {
+  display: inline-block;
+  width: 20px;
+  height: 100%;
+  vertical-align: middle;
+}
+.waveform-1 {
+  background-color: #007bff;
+}
+.waveform-0 {
+  background-color: #ccc;
+}
