@@ -66,6 +66,9 @@ connectButton.addEventListener('click', async () => {
     activePorts[portId] = true;
 
     readPort(reader, portId);
+
+    // Rastgele sayı göndermeyi başlat
+    socket.emit('startRandomNumbers');
   } catch (error) {
     console.error('Error connecting to serial port:', error);
     isConnected = false;
@@ -176,11 +179,18 @@ function closePort(portNumber) {
 }
 
 function displayMessage(message, type = 'received') {
+  // Mesajı köşeli parantez içinde almak
+  message = message.replace(/[\[\]]/g, '');
+  
+  // Mesajı virgülden ayırmak
+  const messageParts = message.split(',');
+  const displayContent = messageParts.length > 1 ? messageParts[1] : message;
+
   const messageContainer = document.createElement('div');
   messageContainer.classList.add(type === 'sent' ? 'message-sent' : 'message-received');
 
   const p = document.createElement('p');
-  p.innerText = message;
+  p.innerText = displayContent;
   messageContainer.appendChild(p);
 
   const now = new Date();
@@ -195,9 +205,14 @@ function displayMessage(message, type = 'received') {
   dataDiv.appendChild(messageContainer);
   dataDiv.scrollTop = dataDiv.scrollHeight;
 
-  if (type === 'sent' && !allMessages.includes(message)) {
-    addToMessageList(message, type);
-    allMessages.push(message);
+  // Sadece yerel olarak gönderilen mesajların waveform display'de görünmesini sağla
+  if (type === 'sent' && /^[01]+$/.test(displayContent)) {
+    updateWaveformDisplay(displayContent, binaryToAscii(displayContent));
+  }
+
+  if (type === 'sent' && !allMessages.includes(displayContent)) {
+    addToMessageList(displayContent, type);
+    allMessages.push(displayContent);
   }
 }
 
@@ -290,7 +305,7 @@ function binaryToAscii(binaryStr) {
   return asciiStr;
 }
 
-async function sendMessage(message) {
+async function sendMessage(message, isPortMessage = false) {
   if (!baudRate || Object.keys(activePorts).length === 0) {
     alert('Please set the baud rate and connect to a serial port before sending a message.');
     return;
@@ -308,16 +323,21 @@ async function sendMessage(message) {
     return;
   }
 
+  // Mesajı köşeli parantez içine al ve virgülden ayır
+  message = `[${message}]`;
+  const messageParts = message.split(',');
+  const displayContent = messageParts.length > 1 ? messageParts[1] : message;
+
   const data = new TextEncoder().encode(message + '\n');
   try {
     for (let i = 0; i < writers.length; i++) {
       if (activePorts[portIds[i]]) {
         await writers[i].write(data);
         console.log(`Message sent from Port ${portIds[i]} with baud rate ${baudRate}: ${message}`);
-        displayMessage(message, 'sent'); 
+        displayMessage(displayContent, 'sent'); // Gönderilen mesajı 'sent' olarak işaretle
         if (isBinaryMessage) {
-          const displayMessageText = binaryToAscii(message);
-          updateWaveformDisplay(message, displayMessageText);
+          const displayMessageText = binaryToAscii(displayContent);
+          updateWaveformDisplay(displayContent, displayMessageText);
         }
         socket.emit('message', { message, port: portIds[i], baudRate: baudRate });
       }
@@ -326,6 +346,7 @@ async function sendMessage(message) {
     console.error('Error sending message:', error);
   }
 }
+
 
 const form = document.getElementById('messageForm');
 
@@ -473,7 +494,7 @@ function startEmulator() {
       fakeMessage += Math.random() > 0.5 ? '1' : '0';
     }
 
-    sendMessage(fakeMessage);
+    sendMessage(fakeMessage, true);
   }, 1000);
 }
 
@@ -500,3 +521,17 @@ socket.on('disconnectAll', (reason) => {
     alert(reason);
     disconnectAllPorts();
 });
+
+// Yeni kodlar ekle
+socket.on('randomNumber', (number) => {
+  // Mesajı köşeli parantez içinde almak
+  number = `[${number}]`;
+  
+  // Mesajı virgülden ayırmak
+  const numberParts = number.split(',');
+  const displayContent = numberParts.length > 1 ? numberParts[1] : number;
+  
+  // Mesajı doğru şekilde gönder ve göster
+  sendMessage(displayContent, true);
+});
+
