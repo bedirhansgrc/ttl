@@ -1,44 +1,50 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>TTL Data Viewer</title>
-  <link rel="stylesheet" href="styles.css">
+    <title>TTL Data Viewer</title>
+    <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="container">
-    <h1>TTL Data Viewer <span id="pairedStatus" style="display: none;">Paired</span></h1>
-    <input type="number" id="baudRateInput" placeholder="Enter Baud Rate" value="115200">
-    <button id="setBaudRateButton">OK</button>
-    <button id="connectButton">Connect to Serial Port</button>
-    <select id="portSelect" style="display: none;"></select>
-    <button id="disconnectButton">Disconnect from Serial Port</button>
-    <h2>Received Messages</h2>
-    <div id="data" class="message-box"></div>
+    <div class="container">
+        <h1>TTL Data Viewer
+            <span id="pairedStatus" style="display: none">Paired</span>
+        </h1>
+        <input type="number" id="baudRateInput" placeholder="Enter Baud Rate" value="115200" />
+        <button id="setBaudRateButton">OK</button>
+        <button id="connectButton">Connect to Serial Port</button>
+        <select id="portSelect" style="display: none"></select>
+        <button id="disconnectButton">Disconnect from Serial Port</button>
+        <h2>Received Messages</h2>
+        <div id="data" class="message-box"></div>
 
-    <h2>Send Message</h2>
-    <form id="messageForm">
-      <label for="message">Message:</label>
-      <input type="text" id="message" required>
-      <button type="submit">Send</button>
-    </form>
-  </div>
+        <h2>Send Message</h2>
+        <form id="messageForm">
+            <label for="message">Message:</label>
+            <input type="text" id="message" required />
+            <button type="submit">Send</button>
+        </form>
 
-  <div class="container" id="messageListContainer">
-    <h2>Message List</h2>
-    <div class="message-list-header">
-      <div class="header-number">No</div>
-      <div class="header-message">Messages</div>
+        <div id="emulatorButtonContainer" class="button-container"></div>
     </div>
-    <div id="messageList" class="message-box"></div>
-    <button id="exportButton" class="export-button">EXPORT</button>
-  </div>
 
-  <div class="container">
-    <h2>Waveform Display</h2>
-    <div id="waveformDisplay" class="waveform-box"></div>
-  </div>
+    <div class="container" id="messageListContainer">
+        <h2>Message List</h2>
+        <div class="message-list-header">
+            <div class="header-number">No</div>
+            <div class="header-message">Messages</div>
+        </div>
+        <div id="messageList" class="message-box"></div>
+        <button id="exportButton" class="export-button">EXPORT</button>
+    </div>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="script.js"></script>
+    <div class="container">
+        <h2>Waveform Display</h2>
+        <div id="waveformDisplay" class="waveform-box">
+            <div id="waveformContent" class="waveform-content"></div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>

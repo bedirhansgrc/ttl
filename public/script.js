@@ -17,6 +17,7 @@ let allMessages = [];
 let activePorts = {};
 let isConnected = false;
 let connectedBaudRates = [];
+let emulatorInterval;
 
 setBaudRateButton.addEventListener('click', () => {
   const baudRateValue = baudRateInput.value.trim();
@@ -294,15 +295,15 @@ async function sendMessage(message) {
         await writers[i].write(data);
         console.log(`Message sent from Port ${i + 1} with baud rate ${baudRate}: ${message}`);
         displayMessage(message, 'sent');
-        updateWaveformDisplay(message); // Sadece gönderilen mesajlar için dalga formunu güncelliyoruz
+        updateWaveformDisplay(message);
       }
     }
-    // Sadece burada socket.emit kullanıyoruz
     socket.emit('message', { message, port: writers.length, baudRate: baudRate });
   } catch (error) {
     console.error('Error sending message:', error);
   }
 }
+
 
 const form = document.getElementById('messageForm');
 
@@ -318,78 +319,109 @@ form.addEventListener('submit', (e) => {
 function updateWaveformDisplay(message) {
   const isValidMessage = /^[01]+$/.test(message);
   if (!isValidMessage) {
-    document.getElementById('waveformDisplay').innerHTML = '';
-    return;
+      document.getElementById('waveformContent').innerHTML = '';
+      return;
   }
 
-  const waveformDisplay = document.getElementById('waveformDisplay');
+  const waveformContent = document.getElementById('waveformContent');
   const fragment = document.createDocumentFragment();
 
   let previousBit = null;
   const borderWidth = '2px';
 
   for (let i = 0; i < message.length; i++) {
-    const bit = message[i];
-    
-    const bitContainer = document.createElement('div');
-    bitContainer.style.display = 'inline-block';
-    bitContainer.style.position = 'relative';
-    bitContainer.style.height = '50px';
-    bitContainer.style.width = '20px';
+      const bit = message[i];
+      
+      const bitContainer = document.createElement('div');
+      bitContainer.style.display = 'inline-block';
+      bitContainer.style.position = 'relative';
+      bitContainer.style.height = '70px'; // Increased height to accommodate bit labels
+      bitContainer.style.width = '20px';
 
-    const verticalLine = document.createElement('div');
-    verticalLine.style.position = 'absolute';
-    verticalLine.style.width = borderWidth;
-    verticalLine.style.height = '100%';
-    verticalLine.style.backgroundColor = 'grey';
+      const verticalLine = document.createElement('div');
+      verticalLine.style.position = 'absolute';
+      verticalLine.style.width = borderWidth;
+      verticalLine.style.backgroundColor = 'grey';
 
-    const horizontalLine = document.createElement('div');
-    horizontalLine.style.position = 'absolute';
-    horizontalLine.style.height = borderWidth;
-    horizontalLine.style.width = '100%';
+      const horizontalLine = document.createElement('div');
+      horizontalLine.style.position = 'absolute';
+      horizontalLine.style.height = borderWidth;
+      horizontalLine.style.width = '100%';
 
-    if (bit === '0') {
-      horizontalLine.style.bottom = '0';
-      horizontalLine.style.backgroundColor = 'red';
-      if (previousBit === '1') {
-        verticalLine.style.top = '0';
-      } else {
-        verticalLine.style.display = 'none';
+      if (bit === '0') {
+          horizontalLine.style.bottom = '20px'; // Adjusted to leave space for bit labels
+          horizontalLine.style.backgroundColor = 'red';
+          if (previousBit === '1') {
+              verticalLine.style.top = '0';
+              verticalLine.style.height = 'calc(100% - 20px)'; // Only extend to the middle
+          } else {
+              verticalLine.style.display = 'none';
+          }
+      } else if (bit === '1') {
+          horizontalLine.style.top = '0';
+          horizontalLine.style.backgroundColor = 'green';
+          if (previousBit === '0') {
+              verticalLine.style.bottom = '20px'; // Adjusted to leave space for bit labels
+              verticalLine.style.height = 'calc(100% - 20px)'; // Only extend to the middle
+          } else {
+              verticalLine.style.display = 'none';
+          }
       }
-    } else if (bit === '1') {
-      horizontalLine.style.top = '0';
-      horizontalLine.style.backgroundColor = 'green';
-      if (previousBit === '0') {
-        verticalLine.style.bottom = '0';
-      } else {
-        verticalLine.style.display = 'none';
-      }
-    }
 
-    bitContainer.appendChild(verticalLine);
-    bitContainer.appendChild(horizontalLine);
+      const bitLabel = document.createElement('div');
+      bitLabel.style.position = 'absolute';
+      bitLabel.style.bottom = '0';
+      bitLabel.style.width = '100%';
+      bitLabel.style.textAlign = 'center';
+      bitLabel.innerText = bit;
 
-    fragment.appendChild(bitContainer);
-    previousBit = bit;
+      bitContainer.appendChild(verticalLine);
+      bitContainer.appendChild(horizontalLine);
+      bitContainer.appendChild(bitLabel); // Added the bit label to the container
+
+      fragment.appendChild(bitContainer);
+      previousBit = bit;
   }
 
-  waveformDisplay.innerHTML = '';
-  waveformDisplay.appendChild(fragment);
+  waveformContent.innerHTML = '';
+  waveformContent.appendChild(fragment);
 }
 
-socket.on('message', ({ message }) => {
-  if (!isConnected) return;
+function startEmulator() {
+  emulatorInterval = setInterval(() => {
+    if (!isConnected) {
+      clearInterval(emulatorInterval);
+      return;
+    }
+    let fakeMessage = '';
+    for (let i = 0; i < 1024; i++) {
+      fakeMessage += Math.random() > 0.5 ? '1' : '0';
+    }
 
-  // Alınan mesajın daha önce işlenip işlenmediğini kontrol et
-  const messageKey = `${message.port}-${message.baudRate}-${message.message}`;
-  if (!allMessages.includes(messageKey)) {
-    displayMessage(message, 'received');
-    allMessages.push(messageKey); // Alınan mesajları da allMessages dizisine ekle
-  }
-});
+    sendMessage(fakeMessage);
+  }, 1000);
+}
 
+function stopEmulator() {
+  clearInterval(emulatorInterval);
+}
+
+const emulatorButtonContainer = document.getElementById('emulatorButtonContainer');
+
+const startEmulatorButton = document.createElement('button');
+startEmulatorButton.innerText = 'Start Emulator';
+startEmulatorButton.className = 'emulator-button';
+startEmulatorButton.addEventListener('click', startEmulator);
+
+const stopEmulatorButton = document.createElement('button');
+stopEmulatorButton.innerText = 'Stop Emulator';
+stopEmulatorButton.className = 'stop-emulator-button';
+stopEmulatorButton.addEventListener('click', stopEmulator);
+
+emulatorButtonContainer.appendChild(startEmulatorButton);
+emulatorButtonContainer.appendChild(stopEmulatorButton);
 
 socket.on('disconnectAll', (reason) => {
-  alert(reason);
-  disconnectAllPorts();
+    alert(reason);
+    disconnectAllPorts();
 });

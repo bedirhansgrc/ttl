@@ -7,11 +7,12 @@ body {
   flex-direction: row;
   justify-content: center;
   gap: 20px;
+  overflow-x: hidden; /* Prevent horizontal overflow */
 }
 
 .container {
-  max-width: 800px;
-  width: 48%;
+  max-width: 30%; /* Set a fixed width for each container */
+  width: 30%;
   background: white;
   padding: 20px;
   border-radius: 8px;
@@ -19,7 +20,7 @@ body {
 }
 
 #messageListContainer {
-  width: 35%;
+  width: 35%; /* Adjust width to keep it consistent */
 }
 
 h1,
@@ -51,6 +52,9 @@ button:hover {
   background-color: #e9ecef;
   border-radius: 5px;
   margin-bottom: 20px;
+  word-wrap: break-word; /* Ensure long messages wrap */
+  overflow-wrap: break-word; /* Ensure long messages wrap */
+  white-space: pre-wrap; /* Preserve whitespace and wrap */
 }
 
 .message-divider {
@@ -95,29 +99,28 @@ button[type="submit"]:hover {
   background-color: #218838;
 }
 
-.message-received {
+.message-received,
+.message-sent {
   text-align: left;
-  background-color: #d4edda;
   padding: 1px 10px;
   border-radius: 20px;
   margin: 2px 0;
   width: fit-content;
-  max-width: 60%;
+  max-width: 100%; /* Ensure it fits the container */
   word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap; /* Preserve whitespace and wrap */
   position: relative;
 }
 
+.message-received {
+  background-color: #d4edda;
+}
+
 .message-sent {
-  text-align: right;
   background-color: #cce5ff;
-  padding: 1px 10px;
-  border-radius: 20px;
-  margin: 2px 0;
+  text-align: right;
   margin-left: auto;
-  width: fit-content;
-  max-width: 60%;
-  word-wrap: break-word;
-  position: relative;
 }
 
 .message-time {
@@ -188,6 +191,9 @@ button[type="submit"]:hover {
   align-items: center;
   border-bottom: 1px solid #ccc;
   padding: 5px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap; /* Preserve whitespace and wrap */
 }
 
 .message-number {
@@ -201,6 +207,9 @@ button[type="submit"]:hover {
   flex: 4;
   padding-left: 10px;
   font-size: 14px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap; /* Preserve whitespace and wrap */
 }
 
 .pinned-message {
@@ -266,23 +275,57 @@ button[type="submit"]:hover {
 .waveform-box {
   border: 1px solid #ccc;
   padding: 10px;
-  height: 300px;
-  overflow-x: auto;
-  white-space: nowrap;
+  height: 320px; 
+  width: 100%; 
+  overflow: hidden; 
   background-color: #e9ecef;
   border-radius: 5px;
   margin-bottom: 20px;
   position: relative;
 }
+
+.waveform-content {
+  overflow-y: auto; 
+  overflow-x: scroll; 
+  height: 100%;
+  width: 100%; 
+  white-space: nowrap; 
+}
+
 .waveform {
   display: inline-block;
   width: 20px;
   height: 100%;
   vertical-align: middle;
 }
+
 .waveform-1 {
   background-color: #007bff;
 }
+
 .waveform-0 {
   background-color: #ccc;
+}
+
+.button-container {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.emulator-button,
+.stop-emulator-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 16px;
+  display: inline-block;
+  margin-top: 10px;
+}
+
+.emulator-button:hover,
+.stop-emulator-button:hover {
+  background-color: #0056b3;
 }

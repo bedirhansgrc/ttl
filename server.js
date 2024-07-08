@@ -47,7 +47,6 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Mesajın daha önce işlenip işlenmediğini kontrol et
     const messageKey = `${message.port}-${message.baudRate}-${message.message}`;
     if (allMessages.includes(messageKey)) {
       console.log(`Message '${message.message}' already received, not processing again.`);
@@ -55,7 +54,7 @@ io.on('connection', (socket) => {
     }
 
     allMessages.push(messageKey);
-    socket.broadcast.emit('message', message); // Sadece diğer istemcilere gönder
+    socket.broadcast.emit('message', message);
   });
 
   socket.on('disconnect', () => {
