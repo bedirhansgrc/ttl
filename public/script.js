@@ -290,14 +290,12 @@ function binaryToAscii(binaryStr) {
   return asciiStr;
 }
 
-// Modify the sendMessage function
 async function sendMessage(message) {
   if (!baudRate || Object.keys(activePorts).length === 0) {
     alert('Please set the baud rate and connect to a serial port before sending a message.');
     return;
   }
 
-  // Remove spaces from the message
   message = message.replace(/\s+/g, '');
 
   const isBinaryMessage = /^[01]+$/.test(message);
@@ -316,10 +314,10 @@ async function sendMessage(message) {
       if (activePorts[portIds[i]]) {
         await writers[i].write(data);
         console.log(`Message sent from Port ${portIds[i]} with baud rate ${baudRate}: ${message}`);
-        displayMessage(message, 'sent');  // Display the original message
+        displayMessage(message, 'sent'); 
         if (isBinaryMessage) {
           const displayMessageText = binaryToAscii(message);
-          updateWaveformDisplay(message, displayMessageText);  // Use original message and display text for the waveform display
+          updateWaveformDisplay(message, displayMessageText);
         }
         socket.emit('message', { message, port: portIds[i], baudRate: baudRate });
       }
@@ -328,8 +326,6 @@ async function sendMessage(message) {
     console.error('Error sending message:', error);
   }
 }
-
-
 
 const form = document.getElementById('messageForm');
 
@@ -347,26 +343,25 @@ function updateWaveformDisplay(message, asciiMessage = '') {
   if (!isValidMessage) {
       document.getElementById('sclWaveform').innerHTML = '';
       document.getElementById('sdaWaveform').innerHTML = '';
+      document.getElementById('asciiDisplay').innerHTML = '';
       return;
   }
 
   const sclWaveform = document.getElementById('sclWaveform');
   const sdaWaveform = document.getElementById('sdaWaveform');
-  const asciiDisplay = document.getElementById('asciiDisplay') || createAsciiDisplay();
+  const asciiDisplay = document.getElementById('asciiDisplay');
 
   const fragmentSCL = document.createDocumentFragment();
   const fragmentSDA = document.createDocumentFragment();
 
   const borderWidth = '2px';
 
-  // Generate SCL waveform with twice as many transitions
   for (let i = 0; i < message.length * 2; i++) {
       const bitContainer = document.createElement('div');
       bitContainer.style.display = 'inline-block';
       bitContainer.style.position = 'relative';
       bitContainer.style.height = '50px';
-      bitContainer.style.width = '10px'; // Reduced width to fit twice as many transitions
-
+      bitContainer.style.width = '10px'; 
       const verticalLine = document.createElement('div');
       verticalLine.style.position = 'absolute';
       verticalLine.style.width = borderWidth;
@@ -402,7 +397,7 @@ function updateWaveformDisplay(message, asciiMessage = '') {
       const bitContainer = document.createElement('div');
       bitContainer.style.display = 'inline-block';
       bitContainer.style.position = 'relative';
-      bitContainer.style.height = '70px'; // Increased height to accommodate bit labels
+      bitContainer.style.height = '70px';
       bitContainer.style.width = '20px';
 
       const verticalLine = document.createElement('div');
@@ -416,11 +411,11 @@ function updateWaveformDisplay(message, asciiMessage = '') {
       horizontalLine.style.width = '100%';
 
       if (bit === '0') {
-          horizontalLine.style.bottom = '20px'; // Adjusted to leave space for bit labels
+          horizontalLine.style.bottom = '20px';
           horizontalLine.style.backgroundColor = 'red';
           if (previousBit === '1') {
               verticalLine.style.top = '0';
-              verticalLine.style.height = 'calc(100% - 20px)'; // Only extend to the middle
+              verticalLine.style.height = 'calc(100% - 20px)';
           } else {
               verticalLine.style.display = 'none';
           }
@@ -455,8 +450,7 @@ function updateWaveformDisplay(message, asciiMessage = '') {
   sclWaveform.appendChild(fragmentSCL);
   sdaWaveform.appendChild(fragmentSDA);
 
-  // Display ASCII message
-  asciiDisplay.innerText = `ASCII: ${asciiMessage}`;
+  asciiDisplay.innerText =  " " + asciiMessage ;
 }
 
 function createAsciiDisplay() {

@@ -296,14 +296,17 @@ button[type="submit"]:hover {
 }
 
 .waveform-content {
-  overflow-y: auto;
-  overflow-x: scroll;
-  height: 50px;
-  width: calc(100% - 50px);
+  overflow-y: hidden;  
+  overflow-x: auto; 
+  height: 70px;  
+  width: 100%; 
   white-space: nowrap;
 }
 
-
+.ascii-content {
+  height: auto;
+  white-space: pre-wrap;
+}
 
 .button-container {
   text-align: center;
@@ -333,3 +336,9 @@ button[type="submit"]:hover {
   background-color: #0056b3;
 }
 
+#asciiDisplay {
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  font-family: "Arial", sans-serif;
+}
