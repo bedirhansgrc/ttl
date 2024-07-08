@@ -18,6 +18,7 @@ let activePorts = {};
 let isConnected = false;
 let connectedBaudRates = [];
 let emulatorInterval;
+let portIds = [];
 
 setBaudRateButton.addEventListener('click', () => {
   const baudRateValue = baudRateInput.value.trim();
@@ -44,31 +45,36 @@ connectButton.addEventListener('click', async () => {
     const reader = port.readable.getReader();
     const writer = port.writable.getWriter();
 
-    const portNumber = ports.length;
+    const portId = generateUniquePortId();
     ports.push(port);
     readers.push(reader);
     writers.push(writer);
+    portIds.push(portId);
 
     if (connectedBaudRates.length > 0 && !connectedBaudRates.includes(baudRate)) {
       console.log('Baud rates do not match. Disconnecting port.');
       alert('Connected baud rates do not match. Disconnecting port.');
-      await closePort(portNumber);
+      await closePort(portIds.length - 1);
       return;
     }
 
     connectedBaudRates.push(baudRate);
 
-    console.log(`Connected to port ${portNumber + 1} with baud rate ${baudRate}`);
+    console.log(`Connected to port ${portId} with baud rate ${baudRate}`);
     isConnected = true;
     pairedStatus.style.display = 'inline';
-    activePorts[portNumber] = true;
+    activePorts[portId] = true;
 
-    readPort(reader, portNumber);
+    readPort(reader, portId);
   } catch (error) {
     console.error('Error connecting to serial port:', error);
     isConnected = false;
   }
 });
+
+function generateUniquePortId() {
+  return 'port-' + (portIds.length + 1);
+}
 
 disconnectButton.addEventListener('click', () => {
   if (ports.length > 0) {
@@ -274,11 +280,27 @@ function resendMessage(message) {
   sendMessage(message);
 }
 
+function binaryToAscii(binaryStr) {
+  let asciiStr = '';
+  for (let i = 0; i < binaryStr.length; i += 8) {
+    let byte = binaryStr.slice(i, i + 8);
+    let charCode = parseInt(byte, 2);
+    asciiStr += String.fromCharCode(charCode);
+  }
+  return asciiStr;
+}
+
+// Modify the sendMessage function
 async function sendMessage(message) {
   if (!baudRate || Object.keys(activePorts).length === 0) {
     alert('Please set the baud rate and connect to a serial port before sending a message.');
     return;
   }
+
+  // Remove spaces from the message
+  message = message.replace(/\s+/g, '');
+
+  const isBinaryMessage = /^[01]+$/.test(message);
 
   const uniqueBaudRates = [...new Set(connectedBaudRates)];
   if (uniqueBaudRates.length > 1) {
@@ -291,18 +313,22 @@ async function sendMessage(message) {
   const data = new TextEncoder().encode(message + '\n');
   try {
     for (let i = 0; i < writers.length; i++) {
-      if (activePorts[i]) {
+      if (activePorts[portIds[i]]) {
         await writers[i].write(data);
-        console.log(`Message sent from Port ${i + 1} with baud rate ${baudRate}: ${message}`);
-        displayMessage(message, 'sent');
-        updateWaveformDisplay(message);
+        console.log(`Message sent from Port ${portIds[i]} with baud rate ${baudRate}: ${message}`);
+        displayMessage(message, 'sent');  // Display the original message
+        if (isBinaryMessage) {
+          const displayMessageText = binaryToAscii(message);
+          updateWaveformDisplay(message, displayMessageText);  // Use original message and display text for the waveform display
+        }
+        socket.emit('message', { message, port: portIds[i], baudRate: baudRate });
       }
     }
-    socket.emit('message', { message, port: writers.length, baudRate: baudRate });
   } catch (error) {
     console.error('Error sending message:', error);
   }
 }
+
 
 
 const form = document.getElementById('messageForm');
@@ -316,19 +342,60 @@ form.addEventListener('submit', (e) => {
   }
 });
 
-function updateWaveformDisplay(message) {
+function updateWaveformDisplay(message, asciiMessage = '') {
   const isValidMessage = /^[01]+$/.test(message);
   if (!isValidMessage) {
-      document.getElementById('waveformContent').innerHTML = '';
+      document.getElementById('sclWaveform').innerHTML = '';
+      document.getElementById('sdaWaveform').innerHTML = '';
       return;
   }
 
-  const waveformContent = document.getElementById('waveformContent');
-  const fragment = document.createDocumentFragment();
+  const sclWaveform = document.getElementById('sclWaveform');
+  const sdaWaveform = document.getElementById('sdaWaveform');
+  const asciiDisplay = document.getElementById('asciiDisplay') || createAsciiDisplay();
 
-  let previousBit = null;
+  const fragmentSCL = document.createDocumentFragment();
+  const fragmentSDA = document.createDocumentFragment();
+
   const borderWidth = '2px';
 
+  // Generate SCL waveform with twice as many transitions
+  for (let i = 0; i < message.length * 2; i++) {
+      const bitContainer = document.createElement('div');
+      bitContainer.style.display = 'inline-block';
+      bitContainer.style.position = 'relative';
+      bitContainer.style.height = '50px';
+      bitContainer.style.width = '10px'; // Reduced width to fit twice as many transitions
+
+      const verticalLine = document.createElement('div');
+      verticalLine.style.position = 'absolute';
+      verticalLine.style.width = borderWidth;
+      verticalLine.style.backgroundColor = 'grey';
+
+      const horizontalLine = document.createElement('div');
+      horizontalLine.style.position = 'absolute';
+      horizontalLine.style.height = borderWidth;
+      horizontalLine.style.width = '100%';
+
+      if (i % 2 === 0) {
+          horizontalLine.style.top = '0';
+          horizontalLine.style.backgroundColor = 'blue';
+          verticalLine.style.bottom = '0';
+          verticalLine.style.height = '100%';
+      } else {
+          horizontalLine.style.bottom = '0';
+          horizontalLine.style.backgroundColor = 'blue';
+          verticalLine.style.top = '0';
+          verticalLine.style.height = '100%';
+      }
+
+      bitContainer.appendChild(verticalLine);
+      bitContainer.appendChild(horizontalLine);
+      fragmentSCL.appendChild(bitContainer);
+  }
+
+  // Generate SDA waveform
+  let previousBit = null;
   for (let i = 0; i < message.length; i++) {
       const bit = message[i];
       
@@ -361,8 +428,8 @@ function updateWaveformDisplay(message) {
           horizontalLine.style.top = '0';
           horizontalLine.style.backgroundColor = 'green';
           if (previousBit === '0') {
-              verticalLine.style.bottom = '20px'; // Adjusted to leave space for bit labels
-              verticalLine.style.height = 'calc(100% - 20px)'; // Only extend to the middle
+              verticalLine.style.bottom = '20px'; 
+              verticalLine.style.height = 'calc(100% - 20px)';
           } else {
               verticalLine.style.display = 'none';
           }
@@ -370,21 +437,35 @@ function updateWaveformDisplay(message) {
 
       const bitLabel = document.createElement('div');
       bitLabel.style.position = 'absolute';
-      bitLabel.style.bottom = '0';
+      bitLabel.style.bottom = '0'; 
       bitLabel.style.width = '100%';
       bitLabel.style.textAlign = 'center';
       bitLabel.innerText = bit;
 
       bitContainer.appendChild(verticalLine);
       bitContainer.appendChild(horizontalLine);
-      bitContainer.appendChild(bitLabel); // Added the bit label to the container
+      bitContainer.appendChild(bitLabel);
 
-      fragment.appendChild(bitContainer);
+      fragmentSDA.appendChild(bitContainer);
       previousBit = bit;
   }
 
-  waveformContent.innerHTML = '';
-  waveformContent.appendChild(fragment);
+  sclWaveform.innerHTML = '';
+  sdaWaveform.innerHTML = '';
+  sclWaveform.appendChild(fragmentSCL);
+  sdaWaveform.appendChild(fragmentSDA);
+
+  // Display ASCII message
+  asciiDisplay.innerText = `ASCII: ${asciiMessage}`;
+}
+
+function createAsciiDisplay() {
+  const waveformBox = document.querySelector('.waveform-box');
+  const asciiDisplay = document.createElement('div');
+  asciiDisplay.id = 'asciiDisplay';
+  asciiDisplay.style.marginTop = '10px';
+  waveformBox.appendChild(asciiDisplay);
+  return asciiDisplay;
 }
 
 function startEmulator() {
