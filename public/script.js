@@ -179,18 +179,13 @@ function closePort(portNumber) {
 }
 
 function displayMessage(message, type = 'received') {
-  // Mesajı köşeli parantez içinde almak
-  message = message.replace(/[\[\]]/g, '');
-  
-  // Mesajı virgülden ayırmak
-  const messageParts = message.split(',');
-  const displayContent = messageParts.length > 1 ? messageParts[1] : message;
+  message = message.replace(/[\[\]]/g, ''); // Köşeli parantezleri temizle
 
   const messageContainer = document.createElement('div');
   messageContainer.classList.add(type === 'sent' ? 'message-sent' : 'message-received');
 
   const p = document.createElement('p');
-  p.innerText = displayContent;
+  p.innerText = message;
   messageContainer.appendChild(p);
 
   const now = new Date();
@@ -205,16 +200,20 @@ function displayMessage(message, type = 'received') {
   dataDiv.appendChild(messageContainer);
   dataDiv.scrollTop = dataDiv.scrollHeight;
 
-  // Sadece yerel olarak gönderilen mesajların waveform display'de görünmesini sağla
-  if (type === 'sent' && /^[01]+$/.test(displayContent)) {
-    updateWaveformDisplay(displayContent, binaryToAscii(displayContent));
+  // Gönderilen mesajların waveform display'de görünmesini sağla
+  if (type === 'sent' && /^[01]+$/.test(message)) {
+    updateWaveformDisplay(message, binaryToAscii(message));
   }
 
-  if (type === 'sent' && !allMessages.includes(displayContent)) {
-    addToMessageList(displayContent, type);
-    allMessages.push(displayContent);
+  // Sadece gönderilen mesajları message list'e ekle
+  if (type === 'sent' && !allMessages.includes(message)) {
+    addToMessageList(message, type);
+    allMessages.push(message);
   }
 }
+
+
+
 
 function addToMessageList(message, type) {
   const messageList = document.getElementById('messageList');
@@ -323,21 +322,18 @@ async function sendMessage(message, isPortMessage = false) {
     return;
   }
 
-  // Mesajı köşeli parantez içine al ve virgülden ayır
-  message = `[${message}]`;
-  const messageParts = message.split(',');
-  const displayContent = messageParts.length > 1 ? messageParts[1] : message;
-
+  message = message.replace(/[\[\]]/g, ''); // Köşeli parantezleri temizle
   const data = new TextEncoder().encode(message + '\n');
+  
   try {
     for (let i = 0; i < writers.length; i++) {
       if (activePorts[portIds[i]]) {
         await writers[i].write(data);
         console.log(`Message sent from Port ${portIds[i]} with baud rate ${baudRate}: ${message}`);
-        displayMessage(displayContent, 'sent'); // Gönderilen mesajı 'sent' olarak işaretle
+        displayMessage(message, 'sent'); // Gönderilen mesajı 'sent' olarak işaretle
         if (isBinaryMessage) {
-          const displayMessageText = binaryToAscii(displayContent);
-          updateWaveformDisplay(displayContent, displayMessageText);
+          const displayMessageText = binaryToAscii(message);
+          updateWaveformDisplay(message, displayMessageText);
         }
         socket.emit('message', { message, port: portIds[i], baudRate: baudRate });
       }
@@ -346,6 +342,8 @@ async function sendMessage(message, isPortMessage = false) {
     console.error('Error sending message:', error);
   }
 }
+
+
 
 
 const form = document.getElementById('messageForm');
@@ -362,10 +360,10 @@ form.addEventListener('submit', (e) => {
 function updateWaveformDisplay(message, asciiMessage = '') {
   const isValidMessage = /^[01]+$/.test(message);
   if (!isValidMessage) {
-      document.getElementById('sclWaveform').innerHTML = '';
-      document.getElementById('sdaWaveform').innerHTML = '';
-      document.getElementById('asciiDisplay').innerHTML = '';
-      return;
+    document.getElementById('sclWaveform').innerHTML = '';
+    document.getElementById('sdaWaveform').innerHTML = '';
+    document.getElementById('asciiDisplay').innerHTML = '';
+    return;
   }
 
   const sclWaveform = document.getElementById('sclWaveform');
@@ -378,92 +376,92 @@ function updateWaveformDisplay(message, asciiMessage = '') {
   const borderWidth = '2px';
 
   for (let i = 0; i < message.length * 2; i++) {
-      const bitContainer = document.createElement('div');
-      bitContainer.style.display = 'inline-block';
-      bitContainer.style.position = 'relative';
-      bitContainer.style.height = '50px';
-      bitContainer.style.width = '10px'; 
-      const verticalLine = document.createElement('div');
-      verticalLine.style.position = 'absolute';
-      verticalLine.style.width = borderWidth;
-      verticalLine.style.backgroundColor = 'grey';
+    const bitContainer = document.createElement('div');
+    bitContainer.style.display = 'inline-block';
+    bitContainer.style.position = 'relative';
+    bitContainer.style.height = '50px';
+    bitContainer.style.width = '10px';
+    const verticalLine = document.createElement('div');
+    verticalLine.style.position = 'absolute';
+    verticalLine.style.width = borderWidth;
+    verticalLine.style.backgroundColor = 'grey';
 
-      const horizontalLine = document.createElement('div');
-      horizontalLine.style.position = 'absolute';
-      horizontalLine.style.height = borderWidth;
-      horizontalLine.style.width = '100%';
+    const horizontalLine = document.createElement('div');
+    horizontalLine.style.position = 'absolute';
+    horizontalLine.style.height = borderWidth;
+    horizontalLine.style.width = '100%';
 
-      if (i % 2 === 0) {
-          horizontalLine.style.top = '0';
-          horizontalLine.style.backgroundColor = 'blue';
-          verticalLine.style.bottom = '0';
-          verticalLine.style.height = '100%';
-      } else {
-          horizontalLine.style.bottom = '0';
-          horizontalLine.style.backgroundColor = 'blue';
-          verticalLine.style.top = '0';
-          verticalLine.style.height = '100%';
-      }
+    if (i % 2 === 0) {
+      horizontalLine.style.top = '0';
+      horizontalLine.style.backgroundColor = 'blue';
+      verticalLine.style.bottom = '0';
+      verticalLine.style.height = '100%';
+    } else {
+      horizontalLine.style.bottom = '0';
+      horizontalLine.style.backgroundColor = 'blue';
+      verticalLine.style.top = '0';
+      verticalLine.style.height = '100%';
+    }
 
-      bitContainer.appendChild(verticalLine);
-      bitContainer.appendChild(horizontalLine);
-      fragmentSCL.appendChild(bitContainer);
+    bitContainer.appendChild(verticalLine);
+    bitContainer.appendChild(horizontalLine);
+    fragmentSCL.appendChild(bitContainer);
   }
 
   // Generate SDA waveform
   let previousBit = null;
   for (let i = 0; i < message.length; i++) {
-      const bit = message[i];
-      
-      const bitContainer = document.createElement('div');
-      bitContainer.style.display = 'inline-block';
-      bitContainer.style.position = 'relative';
-      bitContainer.style.height = '70px';
-      bitContainer.style.width = '20px';
+    const bit = message[i];
 
-      const verticalLine = document.createElement('div');
-      verticalLine.style.position = 'absolute';
-      verticalLine.style.width = borderWidth;
-      verticalLine.style.backgroundColor = 'grey';
+    const bitContainer = document.createElement('div');
+    bitContainer.style.display = 'inline-block';
+    bitContainer.style.position = 'relative';
+    bitContainer.style.height = '70px';
+    bitContainer.style.width = '20px';
 
-      const horizontalLine = document.createElement('div');
-      horizontalLine.style.position = 'absolute';
-      horizontalLine.style.height = borderWidth;
-      horizontalLine.style.width = '100%';
+    const verticalLine = document.createElement('div');
+    verticalLine.style.position = 'absolute';
+    verticalLine.style.width = borderWidth;
+    verticalLine.style.backgroundColor = 'grey';
 
-      if (bit === '0') {
-          horizontalLine.style.bottom = '20px';
-          horizontalLine.style.backgroundColor = 'red';
-          if (previousBit === '1') {
-              verticalLine.style.top = '0';
-              verticalLine.style.height = 'calc(100% - 20px)';
-          } else {
-              verticalLine.style.display = 'none';
-          }
-      } else if (bit === '1') {
-          horizontalLine.style.top = '0';
-          horizontalLine.style.backgroundColor = 'green';
-          if (previousBit === '0') {
-              verticalLine.style.bottom = '20px'; 
-              verticalLine.style.height = 'calc(100% - 20px)';
-          } else {
-              verticalLine.style.display = 'none';
-          }
+    const horizontalLine = document.createElement('div');
+    horizontalLine.style.position = 'absolute';
+    horizontalLine.style.height = borderWidth;
+    horizontalLine.style.width = '100%';
+
+    if (bit === '0') {
+      horizontalLine.style.bottom = '20px';
+      horizontalLine.style.backgroundColor = 'red';
+      if (previousBit === '1') {
+        verticalLine.style.top = '0';
+        verticalLine.style.height = 'calc(100% - 20px)';
+      } else {
+        verticalLine.style.display = 'none';
       }
+    } else if (bit === '1') {
+      horizontalLine.style.top = '0';
+      horizontalLine.style.backgroundColor = 'green';
+      if (previousBit === '0') {
+        verticalLine.style.bottom = '20px'; 
+        verticalLine.style.height = 'calc(100% - 20px)';
+      } else {
+        verticalLine.style.display = 'none';
+      }
+    }
 
-      const bitLabel = document.createElement('div');
-      bitLabel.style.position = 'absolute';
-      bitLabel.style.bottom = '0'; 
-      bitLabel.style.width = '100%';
-      bitLabel.style.textAlign = 'center';
-      bitLabel.innerText = bit;
+    const bitLabel = document.createElement('div');
+    bitLabel.style.position = 'absolute';
+    bitLabel.style.bottom = '0'; 
+    bitLabel.style.width = '100%';
+    bitLabel.style.textAlign = 'center';
+    bitLabel.innerText = bit;
 
-      bitContainer.appendChild(verticalLine);
-      bitContainer.appendChild(horizontalLine);
-      bitContainer.appendChild(bitLabel);
+    bitContainer.appendChild(verticalLine);
+    bitContainer.appendChild(horizontalLine);
+    bitContainer.appendChild(bitLabel);
 
-      fragmentSDA.appendChild(bitContainer);
-      previousBit = bit;
+    fragmentSDA.appendChild(bitContainer);
+    previousBit = bit;
   }
 
   sclWaveform.innerHTML = '';
@@ -471,8 +469,19 @@ function updateWaveformDisplay(message, asciiMessage = '') {
   sclWaveform.appendChild(fragmentSCL);
   sdaWaveform.appendChild(fragmentSDA);
 
-  asciiDisplay.innerText =  " " + asciiMessage ;
+  asciiDisplay.innerText = " " + asciiMessage;
 }
+
+function binaryToAscii(binaryStr) {
+  let asciiStr = '';
+  for (let i = 0; i < binaryStr.length; i += 8) {
+    let byte = binaryStr.slice(i, i + 8);
+    let charCode = parseInt(byte, 2);
+    asciiStr += String.fromCharCode(charCode);
+  }
+  return asciiStr;
+}
+
 
 function createAsciiDisplay() {
   const waveformBox = document.querySelector('.waveform-box');
