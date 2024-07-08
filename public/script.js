@@ -19,6 +19,7 @@ let isConnected = false;
 let connectedBaudRates = [];
 let emulatorInterval;
 let portIds = [];
+let waveformCount = 0;
 
 setBaudRateButton.addEventListener('click', () => {
   const baudRateValue = baudRateInput.value.trim();
@@ -200,9 +201,10 @@ function displayMessage(message, type = 'received') {
   dataDiv.appendChild(messageContainer);
   dataDiv.scrollTop = dataDiv.scrollHeight;
 
-  // Gönderilen mesajların waveform display'de görünmesini sağla
-  if (type === 'sent' && /^[01]+$/.test(message)) {
-    updateWaveformDisplay(message, binaryToAscii(message));
+  // Gönderilen ve alınan mesajların waveform display'de görünmesini sağla
+  if (/^[01]+$/.test(message)) {
+    const displayMessageText = binaryToAscii(message);
+    createNewWaveformDisplay(message, displayMessageText);
   }
 
   // Sadece gönderilen mesajları message list'e ekle
@@ -212,7 +214,134 @@ function displayMessage(message, type = 'received') {
   }
 }
 
+function createNewWaveformDisplay(message, asciiMessage = '') {
+  const waveformContainer = document.createElement('div');
+  waveformContainer.classList.add('waveform-box');
 
+  // Waveform numarasını ekle
+  const waveformNumber = document.createElement('div');
+  waveformNumber.classList.add('waveform-number');
+  waveformNumber.innerText = ++waveformCount;
+  waveformContainer.appendChild(waveformNumber);
+
+  const isValidMessage = /^[01]+$/.test(message);
+  if (!isValidMessage) {
+    waveformContainer.innerHTML = '<div>Invalid message format</div>';
+  } else {
+    const fragmentSCL = document.createDocumentFragment();
+    const fragmentSDA = document.createDocumentFragment();
+
+    const borderWidth = '2px';
+
+    for (let i = 0; i < message.length * 2; i++) {
+      const bitContainer = document.createElement('div');
+      bitContainer.style.display = 'inline-block';
+      bitContainer.style.position = 'relative';
+      bitContainer.style.height = '50px';
+      bitContainer.style.width = '10px';
+      const verticalLine = document.createElement('div');
+      verticalLine.style.position = 'absolute';
+      verticalLine.style.width = borderWidth;
+      verticalLine.style.backgroundColor = 'grey';
+
+      const horizontalLine = document.createElement('div');
+      horizontalLine.style.position = 'absolute';
+      horizontalLine.style.height = borderWidth;
+      horizontalLine.style.width = '100%';
+
+      if (i % 2 === 0) {
+        horizontalLine.style.top = '0';
+        horizontalLine.style.backgroundColor = 'blue';
+        verticalLine.style.bottom = '0';
+        verticalLine.style.height = '100%';
+      } else {
+        horizontalLine.style.bottom = '0';
+        horizontalLine.style.backgroundColor = 'blue';
+        verticalLine.style.top = '0';
+        verticalLine.style.height = '100%';
+      }
+
+      bitContainer.appendChild(verticalLine);
+      bitContainer.appendChild(horizontalLine);
+      fragmentSCL.appendChild(bitContainer);
+    }
+
+    let previousBit = null;
+    for (let i = 0; i < message.length; i++) {
+      const bit = message[i];
+
+      const bitContainer = document.createElement('div');
+      bitContainer.style.display = 'inline-block';
+      bitContainer.style.position = 'relative';
+      bitContainer.style.height = '70px';
+      bitContainer.style.width = '20px';
+
+      const verticalLine = document.createElement('div');
+      verticalLine.style.position = 'absolute';
+      verticalLine.style.width = borderWidth;
+      verticalLine.style.backgroundColor = 'grey';
+
+      const horizontalLine = document.createElement('div');
+      horizontalLine.style.position = 'absolute';
+      horizontalLine.style.height = borderWidth;
+      horizontalLine.style.width = '100%';
+
+      if (bit === '0') {
+        horizontalLine.style.bottom = '20px';
+        horizontalLine.style.backgroundColor = 'red';
+        if (previousBit === '1') {
+          verticalLine.style.top = '0';
+          verticalLine.style.height = 'calc(100% - 20px)';
+        } else {
+          verticalLine.style.display = 'none';
+        }
+      } else if (bit === '1') {
+        horizontalLine.style.top = '0';
+        horizontalLine.style.backgroundColor = 'green';
+        if (previousBit === '0') {
+          verticalLine.style.bottom = '20px'; 
+          verticalLine.style.height = 'calc(100% - 20px)';
+        } else {
+          verticalLine.style.display = 'none';
+        }
+      }
+
+      const bitLabel = document.createElement('div');
+      bitLabel.style.position = 'absolute';
+      bitLabel.style.bottom = '0'; 
+      bitLabel.style.width = '100%';
+      bitLabel.style.textAlign = 'center';
+      bitLabel.innerText = bit;
+
+      bitContainer.appendChild(verticalLine);
+      bitContainer.appendChild(horizontalLine);
+      bitContainer.appendChild(bitLabel);
+
+      fragmentSDA.appendChild(bitContainer);
+      previousBit = bit;
+    }
+
+    const sclWaveform = document.createElement('div');
+    sclWaveform.classList.add('waveform-row');
+    sclWaveform.innerHTML = '<div class="waveform-label">SCL:</div>';
+    sclWaveform.appendChild(fragmentSCL);
+    waveformContainer.appendChild(sclWaveform);
+
+    const sdaWaveform = document.createElement('div');
+    sdaWaveform.classList.add('waveform-row');
+    sdaWaveform.innerHTML = '<div class="waveform-label">SDA:</div>';
+    sdaWaveform.appendChild(fragmentSDA);
+    waveformContainer.appendChild(sdaWaveform);
+
+    const asciiDisplay = document.createElement('div');
+    asciiDisplay.classList.add('waveform-row');
+    asciiDisplay.innerHTML = `<div class="waveform-label">ASCII:</div><div>${asciiMessage}</div>`;
+    waveformContainer.appendChild(asciiDisplay);
+  }
+
+  const waveformDisplayContainer = document.getElementById('waveformDisplayContainer');
+  waveformDisplayContainer.insertBefore(waveformContainer, waveformDisplayContainer.firstChild);
+}
 
 
 function addToMessageList(message, type) {
@@ -331,10 +460,6 @@ async function sendMessage(message, isPortMessage = false) {
         await writers[i].write(data);
         console.log(`Message sent from Port ${portIds[i]} with baud rate ${baudRate}: ${message}`);
         displayMessage(message, 'sent'); // Gönderilen mesajı 'sent' olarak işaretle
-        if (isBinaryMessage) {
-          const displayMessageText = binaryToAscii(message);
-          updateWaveformDisplay(message, displayMessageText);
-        }
         socket.emit('message', { message, port: portIds[i], baudRate: baudRate });
       }
     }
@@ -342,10 +467,6 @@ async function sendMessage(message, isPortMessage = false) {
     console.error('Error sending message:', error);
   }
 }
-
-
-
-
 const form = document.getElementById('messageForm');
 
 form.addEventListener('submit', (e) => {
@@ -531,16 +652,12 @@ socket.on('disconnectAll', (reason) => {
     disconnectAllPorts();
 });
 
-// Yeni kodlar ekle
 socket.on('randomNumber', (number) => {
-  // Mesajı köşeli parantez içinde almak
   number = `[${number}]`;
   
-  // Mesajı virgülden ayırmak
   const numberParts = number.split(',');
   const displayContent = numberParts.length > 1 ? numberParts[1] : number;
   
-  // Mesajı doğru şekilde gönder ve göster
   sendMessage(displayContent, true);
 });
 

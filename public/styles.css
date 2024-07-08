@@ -275,12 +275,9 @@ button[type="submit"]:hover {
 .waveform-box {
   border: 1px solid #ccc;
   padding: 10px;
-  height: 320px;
-  width: 100%;
-  overflow: hidden;
+  margin-bottom: 10px;
   background-color: #e9ecef;
   border-radius: 5px;
-  margin-bottom: 20px;
   position: relative;
 }
 
@@ -306,6 +303,18 @@ button[type="submit"]:hover {
 .ascii-content {
   height: auto;
   white-space: pre-wrap;
+}
+
+.waveform-number {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-weight: bold;
+  font-size: 14px;
+  background-color: #fff;
+  padding: 2px 5px;
+  border-radius: 3px;
+  border: 1px solid #ccc;
 }
 
 .button-container {
@@ -341,4 +350,14 @@ button[type="submit"]:hover {
   align-items: center;
   font-weight: bold;
   font-family: "Arial", sans-serif;
+}
+
+.waveform-display-container {
+  height: 850px;
+  overflow-y: auto; 
+  border: 1px solid #ccc; 
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-radius: 5px;
+  margin-top: 10px;
 }
