@@ -15,7 +15,6 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-let allMessages = [];
 let connectedBaudRates = {};
 
 io.on('connection', (socket) => {
@@ -29,31 +28,20 @@ io.on('connection', (socket) => {
       console.log('Baud rates do not match across all connected ports. Disconnecting all clients.');
       io.emit('disconnectAll', 'Baud rates do not match across all connected ports.');
       connectedBaudRates = {};
-      allMessages = [];
     }
   });
 
   socket.on('message', (message) => {
     console.log('Message received:', message);
 
-    const senderBaudRate = connectedBaudRates[socket.id];
     const uniqueBaudRates = new Set(Object.values(connectedBaudRates));
-
     if (uniqueBaudRates.size > 1) {
       console.log('Baud rates do not match across all connected ports. Disconnecting all clients.');
       io.emit('disconnectAll', 'Baud rates do not match across all connected ports.');
       connectedBaudRates = {};
-      allMessages = [];
       return;
     }
 
-    const messageKey = `${message.port}-${message.baudRate}-${message.message}`;
-    if (allMessages.includes(messageKey)) {
-      console.log(`Message '${message.message}' already received, not processing again.`);
-      return;
-    }
-
-    allMessages.push(messageKey);
     socket.broadcast.emit('message', message);
   });
 
