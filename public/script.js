@@ -9,6 +9,22 @@ const exportButton = document.getElementById('exportButton');
 const pairedStatus = document.getElementById('pairedStatus');
 const startEmulatorButton = document.getElementById('startEmulatorButton');
 const stopEmulatorButton = document.getElementById('stopEmulatorButton');
+const style = document.createElement('style');
+style.innerHTML = `
+  .hex-box {
+    display: inline-block;
+    width: 156px;  // Genişliği artırıyoruz
+    height: 40px;  // Yüksekliği artırıyoruz
+    line-height: 40px;
+    text-align: center;
+    border: 2px solid #000;
+    border-radius: 10px;
+    background-color: #f4a261;
+    font-weight: bold;
+    font-family: Arial, sans-serif;  // Daha iyi okunabilirlik için font ekliyoruz
+  }
+`;
+document.head.appendChild(style);
 let baudRate;
 let ports = [];
 let readers = [];
@@ -235,8 +251,7 @@ function displayMessage(message, type = 'received') {
   dataDiv.scrollTop = dataDiv.scrollHeight;
 
   if (/^[01]+$/.test(message)) {
-    const displayMessageText = binaryToAscii(message);
-    createNewWaveformDisplay(message, displayMessageText);
+    createNewWaveformDisplay(message);
   }
 
   if (type === 'sent' && !allMessages.includes(message)) {
@@ -245,7 +260,7 @@ function displayMessage(message, type = 'received') {
   }
 }
 
-function createNewWaveformDisplay(message, asciiMessage = '') {
+function createNewWaveformDisplay(message) {
   const waveformContainer = document.createElement('div');
   waveformContainer.classList.add('waveform-box');
 
@@ -261,6 +276,7 @@ function createNewWaveformDisplay(message, asciiMessage = '') {
   } else {
     const fragmentSCL = document.createDocumentFragment();
     const fragmentSDA = document.createDocumentFragment();
+    const fragmentHex = document.createDocumentFragment();
 
     const borderWidth = '2px';
 
@@ -298,6 +314,7 @@ function createNewWaveformDisplay(message, asciiMessage = '') {
     }
 
     let previousBit = null;
+    let hexIndex = 0;
     for (let i = 0; i < message.length; i++) {
       const bit = message[i];
 
@@ -349,6 +366,17 @@ function createNewWaveformDisplay(message, asciiMessage = '') {
       bitContainer.appendChild(bitLabel);
 
       fragmentSDA.appendChild(bitContainer);
+
+      if ((i + 1) % 8 === 0) {
+        const byte = message.slice(i - 7, i + 1);
+        const hexValue = parseInt(byte, 2).toString(16).toUpperCase();
+        const hexContainer = document.createElement('div');
+        hexContainer.classList.add('hex-box');
+        hexContainer.innerText = hexValue;
+        fragmentHex.appendChild(hexContainer);
+        hexIndex++;
+      }
+
       previousBit = bit;
     }
 
@@ -364,10 +392,11 @@ function createNewWaveformDisplay(message, asciiMessage = '') {
     sdaWaveform.appendChild(fragmentSDA);
     waveformContainer.appendChild(sdaWaveform);
 
-    const asciiDisplay = document.createElement('div');
-    asciiDisplay.classList.add('waveform-row');
-    asciiDisplay.innerHTML = `<div class="waveform-label">ASCII:</div><div class="ascii-content">${asciiMessage}</div>`;
-    waveformContainer.appendChild(asciiDisplay);
+    const hexWaveform = document.createElement('div');
+    hexWaveform.classList.add('waveform-row');
+    hexWaveform.innerHTML = '<div class="waveform-label">Hex:</div>';
+    hexWaveform.appendChild(fragmentHex);
+    waveformContainer.appendChild(hexWaveform);
   }
 
   const waveformDisplayContainer = document.getElementById('waveformDisplayContainer');
