@@ -17,7 +17,6 @@ let allMessages = [];
 let activePorts = {};
 let isConnected = false;
 let connectedBaudRates = [];
-let emulatorInterval;
 let portIds = [];
 let waveformCount = 0;
 
@@ -612,41 +611,6 @@ function createAsciiDisplay() {
   waveformBox.appendChild(asciiDisplay);
   return asciiDisplay;
 }
-
-function startEmulator() {
-  emulatorInterval = setInterval(() => {
-    if (!isConnected) {
-      clearInterval(emulatorInterval);
-      return;
-    }
-    let fakeMessage = '';
-    for (let i = 0; i < 1024; i++) {
-      fakeMessage += Math.random() > 0.5 ? '1' : '0';
-    }
-
-    sendMessage(fakeMessage, true);
-  }, 1000);
-}
-
-function stopEmulator() {
-  clearInterval(emulatorInterval);
-}
-
-const emulatorButtonContainer = document.getElementById('emulatorButtonContainer');
-
-const startEmulatorButton = document.createElement('button');
-startEmulatorButton.innerText = 'Start Emulator';
-startEmulatorButton.className = 'emulator-button';
-startEmulatorButton.addEventListener('click', startEmulator);
-
-const stopEmulatorButton = document.createElement('button');
-stopEmulatorButton.innerText = 'Stop Emulator';
-stopEmulatorButton.className = 'stop-emulator-button';
-stopEmulatorButton.addEventListener('click', stopEmulator);
-
-emulatorButtonContainer.appendChild(startEmulatorButton);
-emulatorButtonContainer.appendChild(stopEmulatorButton);
-
 socket.on('disconnectAll', (reason) => {
     alert(reason);
     disconnectAllPorts();
