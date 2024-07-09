@@ -4,15 +4,60 @@ body {
   margin: 0;
   padding: 20px;
   display: flex;
-  flex-direction: row;
-  justify-content: center;
-  gap: 20px;
+  flex-direction: column;
+  align-items: center;
   overflow-x: hidden;
 }
 
+.navbar {
+  width: 100%;
+  background-color: #007bff;
+  display: flex;
+  justify-content: center;
+  padding: 10px 0;
+  margin-bottom: 20px;
+}
+
+.navbar .nav-link {
+  color: white;
+  text-decoration: none;
+  padding: 10px 20px;
+  margin: 0 10px;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+}
+
+.navbar .nav-link:hover,
+.navbar .nav-link.active {
+  background-color: #0056b3;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.waveform-display-container {
+  height: 750px;
+  align-items: center;
+  overflow-y: auto; 
+  overflow-x: hidden; 
+  border: 1px solid #ccc; 
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-radius: 5px;
+  margin-top: 10px;
+}
+
 .container {
-  max-width: 30%;
-  width: 30%;
+  max-width: 100%;
+  width: 900px;
   background: white;
   padding: 20px;
   border-radius: 8px;
@@ -23,8 +68,7 @@ body {
   width: 35%;
 }
 
-h1,
-h2 {
+h1, h2 {
   font-family: "Georgia", serif;
   color: #333;
 }
@@ -73,8 +117,7 @@ label {
   font-weight: bold;
 }
 
-input,
-button[type="submit"] {
+input, button[type="submit"] {
   padding: 10px;
   margin-bottom: 10px;
   font-size: 16px;
@@ -82,8 +125,7 @@ button[type="submit"] {
   border: 1px solid #ccc;
 }
 
-input:focus,
-button[type="submit"]:focus {
+input:focus, button[type="submit"]:focus {
   outline: none;
   border-color: #007bff;
 }
@@ -99,8 +141,7 @@ button[type="submit"]:hover {
   background-color: #218838;
 }
 
-.message-received,
-.message-sent {
+.message-received, .message-sent {
   text-align: left;
   padding: 1px 10px;
   border-radius: 20px;
@@ -131,8 +172,7 @@ button[type="submit"]:hover {
   display: none;
 }
 
-.message-sent:hover .message-time,
-.message-received:hover .message-time {
+.message-sent:hover .message-time, .message-received:hover .message-time {
   display: inline;
 }
 
@@ -167,8 +207,7 @@ button[type="submit"]:hover {
   margin-bottom: 10px;
 }
 
-.header-number,
-.header-message {
+.header-number, .header-message {
   font-weight: bold;
   padding: 5px;
 }
@@ -279,6 +318,8 @@ button[type="submit"]:hover {
   background-color: #e9ecef;
   border-radius: 5px;
   position: relative;
+  overflow-x: auto;
+  overflow-y: hidden; 
 }
 
 .waveform-row {
@@ -294,9 +335,7 @@ button[type="submit"]:hover {
 
 .waveform-content {
   overflow-y: hidden;  
-  overflow-x: auto; 
-  height: 70px;  
-  width: 100%; 
+  overflow-x: auto;
   white-space: nowrap;
 }
 
@@ -327,14 +366,4 @@ button[type="submit"]:hover {
   align-items: center;
   font-weight: bold;
   font-family: "Arial", sans-serif;
-}
-
-.waveform-display-container {
-  height: 850px;
-  overflow-y: auto; 
-  border: 1px solid #ccc; 
-  padding: 10px;
-  background-color: #f9f9f9;
-  border-radius: 5px;
-  margin-top: 10px;
 }

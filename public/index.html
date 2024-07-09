@@ -5,39 +5,46 @@
     <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-    <div class="container">
-        <h1>TTL Data Viewer
-            <span id="pairedStatus" style="display: none">Paired</span>
-        </h1>
-        <input type="number" id="baudRateInput" placeholder="Enter Baud Rate" value="115200" />
-        <button id="setBaudRateButton">OK</button>
-        <button id="connectButton">Connect to Serial Port</button>
-        <select id="portSelect" style="display: none"></select>
-        <button id="disconnectButton">Disconnect from Serial Port</button>
-        <h2>Received Messages</h2>
-        <div id="data" class="message-box"></div>
+    <nav class="navbar">
+        <a href="#uart-viewer" class="nav-link" id="uartLink">TTL Data Viewer</a>
+        <a href="#logic-analyzer" class="nav-link" id="logicLink">Logic Analyzer</a>
+    </nav>
+    <div id="uart-viewer" class="tab-content">
+        <div class="container">
+            <h1>TTL Data Viewer
+                <span id="pairedStatus" style="display: none">Paired</span>
+            </h1>
+            <input type="number" id="baudRateInput" placeholder="Enter Baud Rate" value="115200" />
+            <button id="setBaudRateButton">OK</button>
+            <button id="connectButton">Connect to Serial Port</button>
+            <select id="portSelect" style="display: none"></select>
+            <button id="disconnectButton">Disconnect from Serial Port</button>
+            <h2>Received Messages</h2>
+            <div id="data" class="message-box"></div>
 
-        <h2>Send Message</h2>
-        <form id="messageForm">
-            <label for="message">Message:</label>
-            <input type="text" id="message" required />
-            <button type="submit">Send</button>
-        </form>
-    </div>
-
-    <div class="container" id="messageListContainer">
-        <h2>Message List</h2>
-        <div class="message-list-header">
-            <div class="header-number">No</div>
-            <div class="header-message">Messages</div>
+            <h2>Send Message</h2>
+            <form id="messageForm">
+                <label for="message">Message:</label>
+                <input type="text" id="message" required />
+                <button type="submit">Send</button>
+            </form>
         </div>
-        <div id="messageList" class="message-box"></div>
-        <button id="exportButton" class="export-button">EXPORT</button>
-    </div>
 
-    <div class="container">
-        <h2>Waveform Display</h2>
-        <div id="waveformDisplayContainer" class="waveform-display-container"></div>
+        <div class="container" id="messageListContainer">
+            <h2>Message List</h2>
+            <div class="message-list-header">
+                <div class="header-number">No</div>
+                <div class="header-message">Messages</div>
+            </div>
+            <div id="messageList" class="message-box"></div>
+            <button id="exportButton" class="export-button">EXPORT</button>
+        </div>
+    </div>
+    <div id="logic-analyzer" class="tab-content" style="display:none;">
+        <div class="container">
+            <h2>Waveform Display</h2>
+            <div id="waveformDisplayContainer" class="waveform-display-container"></div>
+        </div>
     </div>
     
     <script src="/socket.io/socket.io.js"></script>

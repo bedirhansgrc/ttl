@@ -20,6 +20,33 @@ let connectedBaudRates = [];
 let portIds = [];
 let waveformCount = 0;
 
+document.addEventListener('DOMContentLoaded', () => {
+  const uartLink = document.getElementById('uartLink');
+  const logicLink = document.getElementById('logicLink');
+  const uartViewer = document.getElementById('uart-viewer');
+  const logicAnalyzer = document.getElementById('logic-analyzer');
+
+  uartLink.addEventListener('click', () => {
+      uartViewer.style.display = 'flex';
+      logicAnalyzer.style.display = 'none';
+      uartLink.classList.add('active');
+      logicLink.classList.remove('active');
+  });
+
+  logicLink.addEventListener('click', () => {
+      logicAnalyzer.style.display = 'flex';
+      uartViewer.style.display = 'none';
+      logicLink.classList.add('active');
+      uartLink.classList.remove('active');
+  });
+
+  uartViewer.style.display = 'flex';
+  logicAnalyzer.style.display = 'none';
+  uartLink.classList.add('active');
+});
+
+
+
 setBaudRateButton.addEventListener('click', () => {
   const baudRateValue = baudRateInput.value.trim();
   if (baudRateValue) {
@@ -298,7 +325,7 @@ function createNewWaveformDisplay(message, asciiMessage = '') {
         horizontalLine.style.top = '0';
         horizontalLine.style.backgroundColor = 'green';
         if (previousBit === '0') {
-          verticalLine.style.bottom = '20px'; 
+          verticalLine.style.bottom = '20px';
           verticalLine.style.height = 'calc(100% - 20px)';
         } else {
           verticalLine.style.display = 'none';
@@ -307,7 +334,7 @@ function createNewWaveformDisplay(message, asciiMessage = '') {
 
       const bitLabel = document.createElement('div');
       bitLabel.style.position = 'absolute';
-      bitLabel.style.bottom = '0'; 
+      bitLabel.style.bottom = '0';
       bitLabel.style.width = '100%';
       bitLabel.style.textAlign = 'center';
       bitLabel.innerText = bit;
@@ -452,7 +479,7 @@ async function sendMessage(message, isPortMessage = false) {
 
   message = message.replace(/[\[\]]/g, ''); // Köşeli parantezleri temizle
   const data = new TextEncoder().encode(message + '\n');
-  
+
   try {
     for (let i = 0; i < writers.length; i++) {
       if (activePorts[portIds[i]]) {
@@ -562,7 +589,7 @@ function updateWaveformDisplay(message, asciiMessage = '') {
       horizontalLine.style.top = '0';
       horizontalLine.style.backgroundColor = 'green';
       if (previousBit === '0') {
-        verticalLine.style.bottom = '20px'; 
+        verticalLine.style.bottom = '20px';
         verticalLine.style.height = 'calc(100% - 20px)';
       } else {
         verticalLine.style.display = 'none';
@@ -571,7 +598,7 @@ function updateWaveformDisplay(message, asciiMessage = '') {
 
     const bitLabel = document.createElement('div');
     bitLabel.style.position = 'absolute';
-    bitLabel.style.bottom = '0'; 
+    bitLabel.style.bottom = '0';
     bitLabel.style.width = '100%';
     bitLabel.style.textAlign = 'center';
     bitLabel.innerText = bit;
@@ -612,16 +639,16 @@ function createAsciiDisplay() {
   return asciiDisplay;
 }
 socket.on('disconnectAll', (reason) => {
-    alert(reason);
-    disconnectAllPorts();
+  alert(reason);
+  disconnectAllPorts();
 });
 
 socket.on('randomNumber', (number) => {
   number = `[${number}]`;
-  
+
   const numberParts = number.split(',');
   const displayContent = numberParts.length > 1 ? numberParts[1] : number;
-  
+
   sendMessage(displayContent, true);
 });
 
