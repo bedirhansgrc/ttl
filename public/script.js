@@ -7,6 +7,7 @@ const baudRateInput = document.getElementById('baudRateInput');
 const setBaudRateButton = document.getElementById('setBaudRateButton');
 const exportButton = document.getElementById('exportButton');
 const pairedStatus = document.getElementById('pairedStatus');
+const startEmulatorButton = document.getElementById('startEmulatorButton');
 let baudRate;
 let ports = [];
 let readers = [];
@@ -44,8 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
   logicAnalyzer.style.display = 'none';
   uartLink.classList.add('active');
 });
-
-
 
 setBaudRateButton.addEventListener('click', () => {
   const baudRateValue = baudRateInput.value.trim();
@@ -93,13 +92,15 @@ connectButton.addEventListener('click', async () => {
     activePorts[portId] = true;
 
     readPort(reader, portId);
-
-    // Rastgele sayı göndermeyi başlat
-    socket.emit('startRandomNumbers');
   } catch (error) {
     console.error('Error connecting to serial port:', error);
     isConnected = false;
   }
+});
+
+startEmulatorButton.addEventListener('click', () => {
+  console.log('Starting emulator...');
+  socket.emit('startRandomNumbers');
 });
 
 function generateUniquePortId() {
@@ -369,7 +370,6 @@ function createNewWaveformDisplay(message, asciiMessage = '') {
   waveformDisplayContainer.insertBefore(waveformContainer, waveformDisplayContainer.firstChild);
 }
 
-
 function addToMessageList(message, type) {
   const messageList = document.getElementById('messageList');
   const messageListItem = document.createElement('div');
@@ -629,7 +629,6 @@ function binaryToAscii(binaryStr) {
   return asciiStr;
 }
 
-
 function createAsciiDisplay() {
   const waveformBox = document.querySelector('.waveform-box');
   const asciiDisplay = document.createElement('div');
@@ -651,4 +650,3 @@ socket.on('randomNumber', (number) => {
 
   sendMessage(displayContent, true);
 });
-

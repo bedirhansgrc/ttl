@@ -34,6 +34,10 @@ body {
 
 .tab-content {
   display: none;
+  
+  align-items: center;
+  justify-content:space-around;
+  width: 100%;
 }
 
 .tab-content.active {
@@ -44,11 +48,11 @@ body {
 }
 
 .waveform-display-container {
-  height: 750px;
+  height: 700px;
   align-items: center;
-  overflow-y: auto; 
-  overflow-x: hidden; 
-  border: 1px solid #ccc; 
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid #ccc;
   padding: 10px;
   background-color: #f9f9f9;
   border-radius: 5px;
@@ -57,15 +61,22 @@ body {
 
 .container {
   max-width: 100%;
-  width: 900px;
+  width: 800px;
   background: white;
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
 }
 
-#messageListContainer {
-  width: 35%;
+.content-row {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+#messageListContainer, .message-box-container {
+  width: 48%;
 }
 
 h1, h2 {
@@ -88,6 +99,10 @@ button:hover {
   background-color: #0056b3;
 }
 
+.emulator-button{
+  justify-content: center;
+  margin-top: 20px;
+}
 .message-box {
   border: 1px solid #ccc;
   padding: 10px;
@@ -142,8 +157,7 @@ button[type="submit"]:hover {
 }
 
 .message-received, .message-sent {
-  text-align: left;
-  padding: 1px 10px;
+  padding: 10px;
   border-radius: 20px;
   margin: 2px 0;
   width: fit-content;
@@ -151,15 +165,17 @@ button[type="submit"]:hover {
   word-wrap: break-word;
   overflow-wrap: break-word;
   white-space: pre-wrap;
+  overflow-x: auto;
   position: relative;
 }
 
 .message-received {
-  background-color: #d4edda;
+  background-color: #d4edda; /* Mesaj rengi: yeşil */
+  text-align: left;
 }
 
 .message-sent {
-  background-color: #cce5ff;
+  background-color: #cce5ff; /* Mesaj rengi: mavi */
   text-align: right;
   margin-left: auto;
 }
@@ -249,6 +265,7 @@ button[type="submit"]:hover {
   word-wrap: break-word;
   overflow-wrap: break-word;
   white-space: pre-wrap;
+  overflow-x: auto;
 }
 
 .pinned-message {
@@ -319,7 +336,7 @@ button[type="submit"]:hover {
   border-radius: 5px;
   position: relative;
   overflow-x: auto;
-  overflow-y: hidden; 
+  overflow-y: hidden;
 }
 
 .waveform-row {
@@ -334,7 +351,7 @@ button[type="submit"]:hover {
 }
 
 .waveform-content {
-  overflow-y: hidden;  
+  overflow-y: hidden;
   overflow-x: auto;
   white-space: nowrap;
 }
