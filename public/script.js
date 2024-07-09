@@ -8,6 +8,7 @@ const setBaudRateButton = document.getElementById('setBaudRateButton');
 const exportButton = document.getElementById('exportButton');
 const pairedStatus = document.getElementById('pairedStatus');
 const startEmulatorButton = document.getElementById('startEmulatorButton');
+const stopEmulatorButton = document.getElementById('stopEmulatorButton');
 let baudRate;
 let ports = [];
 let readers = [];
@@ -101,6 +102,11 @@ connectButton.addEventListener('click', async () => {
 startEmulatorButton.addEventListener('click', () => {
   console.log('Starting emulator...');
   socket.emit('startRandomNumbers');
+});
+
+stopEmulatorButton.addEventListener('click', () => {
+  console.log('Stopping emulator...');
+  socket.emit('stopRandomNumbers');
 });
 
 function generateUniquePortId() {
@@ -228,13 +234,11 @@ function displayMessage(message, type = 'received') {
   dataDiv.appendChild(messageContainer);
   dataDiv.scrollTop = dataDiv.scrollHeight;
 
-  // Gönderilen ve alınan mesajların waveform display'de görünmesini sağla
   if (/^[01]+$/.test(message)) {
     const displayMessageText = binaryToAscii(message);
     createNewWaveformDisplay(message, displayMessageText);
   }
 
-  // Sadece gönderilen mesajları message list'e ekle
   if (type === 'sent' && !allMessages.includes(message)) {
     addToMessageList(message, type);
     allMessages.push(message);
@@ -362,7 +366,7 @@ function createNewWaveformDisplay(message, asciiMessage = '') {
 
     const asciiDisplay = document.createElement('div');
     asciiDisplay.classList.add('waveform-row');
-    asciiDisplay.innerHTML = `<div class="waveform-label">ASCII:</div><div>${asciiMessage}</div>`;
+    asciiDisplay.innerHTML = `<div class="waveform-label">ASCII:</div><div class="ascii-content">${asciiMessage}</div>`;
     waveformContainer.appendChild(asciiDisplay);
   }
 

@@ -38,6 +38,13 @@ io.on('connection', (socket) => {
     }, 1000);
   });
 
+  socket.on('stopRandomNumbers', () => {
+    console.log('Stopping random numbers');
+    if (intervalId) {
+      clearInterval(intervalId);
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log('A user disconnected');
     if (intervalId) {
