@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const waveformBox = document.createElement('div');
     waveformBox.classList.add('waveform-box');
     waveformBox.style.height = '195px';
-    waveformBox.style.width = '1200px'; // Set a fixed width to ensure scrollability
+    waveformBox.style.width = '1800px'; // Set a fixed width to ensure scrollability
 
     // Assign a fixed index (socketID) to each waveform box
     waveformBox.setAttribute('socketID', i);  // Assign socketID from 0 to 7
@@ -102,6 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
     waveformDisplayContainer.appendChild(waveformBox);
   }
 });
+
 
 
 
