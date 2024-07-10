@@ -10,6 +10,8 @@ const pairedStatus = document.getElementById('pairedStatus');
 const startEmulatorButton = document.getElementById('startEmulatorButton');
 const stopEmulatorButton = document.getElementById('stopEmulatorButton');
 const style = document.createElement('style');
+const importButton = document.getElementById('importButton');
+const importFile = document.getElementById('importFile');
 style.innerHTML = `
   .hex-box {
     display: inline-block;
@@ -61,6 +63,26 @@ document.addEventListener('DOMContentLoaded', () => {
   uartViewer.style.display = 'flex';
   logicAnalyzer.style.display = 'none';
   uartLink.classList.add('active');
+});
+
+importButton.addEventListener('click', () => {
+  importFile.click();
+});
+
+importFile.addEventListener('change', (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const messages = JSON.parse(e.target.result);
+        importMessages(messages);
+      } catch (error) {
+        alert('Invalid JSON file');
+      }
+    };
+    reader.readAsText(file);
+  }
 });
 
 setBaudRateButton.addEventListener('click', () => {
@@ -403,14 +425,27 @@ function createNewWaveformDisplay(message) {
   waveformDisplayContainer.insertBefore(waveformContainer, waveformDisplayContainer.firstChild);
 }
 
-function addToMessageList(message, type) {
+function importMessages(messages) {
+  if (Array.isArray(messages)) {
+    messages.reverse().forEach((msgObj, index) => {
+      if (msgObj.message) {
+        addToMessageList(msgObj.message, 'imported', messages.length - index);
+        allMessages.unshift(msgObj.message); // Add to the beginning of allMessages array
+      }
+    });
+  } else {
+    alert('Invalid format: JSON should be an array of message objects.');
+  }
+}
+
+function addToMessageList(message, type, number) {
   const messageList = document.getElementById('messageList');
   const messageListItem = document.createElement('div');
   messageListItem.classList.add('message-item');
 
   const messageNumber = document.createElement('div');
   messageNumber.classList.add('message-number');
-  messageNumber.innerText = ++messageCount;
+  messageNumber.innerText = number || ++messageCount;
   messageListItem.appendChild(messageNumber);
 
   const messageText = document.createElement('div');

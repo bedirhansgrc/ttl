@@ -48,7 +48,7 @@ body {
 }
 
 .waveform-display-container {
-  height: 700px;
+  height: 650px;
   align-items: center;
   overflow-y: auto;
   overflow-x: auto;
@@ -173,12 +173,12 @@ button[type="submit"]:hover {
 }
 
 .message-received {
-  background-color: #d4edda; /* Mesaj rengi: yeşil */
+  background-color: #d4edda; 
   text-align: left;
 }
 
 .message-sent {
-  background-color: #cce5ff; /* Mesaj rengi: mavi */
+  background-color: #cce5ff;
   text-align: right;
   margin-left: auto;
 }
@@ -505,18 +505,18 @@ button[type="submit"]:hover {
   background-color: #e9ecef;
   border-radius: 5px;
   position: relative;
-  overflow-x: auto; /* Yatay kaydırmayı etkinleştirin */
+  overflow-x: auto;
   overflow-y: hidden;
   display: block;
-  width: max-content; /* İçeriğe göre genişlesin */
-  white-space: nowrap; /* Satır içi öğeleri sarmaz */
+  width: max-content; 
+  white-space: nowrap; 
 }
 
 .waveform-row {
   display: flex;
   align-items: center;
   margin-bottom: 10px;
-  white-space: nowrap; /* Satır içi öğeleri sarmaz */
+  white-space: nowrap;
 }
 
 .ascii-content {
@@ -586,4 +586,20 @@ button[type="submit"]:hover {
   align-items: center;
   font-weight: bold;
   font-family: "Arial", sans-serif;
+}
+
+.import-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  margin-top: 10px;
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 16px;
+  width: 100%;
+}
+
+.import-button:hover {
+  background-color: #0056b3;
 }
