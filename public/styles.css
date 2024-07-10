@@ -581,13 +581,6 @@ button[type="submit"]:hover {
   margin-top: 20px;
 }
 
-#asciiDisplay {
-  justify-content: center;
-  align-items: center;
-  font-weight: bold;
-  font-family: "Arial", sans-serif;
-}
-
 .import-button {
   background-color: #007bff;
   color: white;

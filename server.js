@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io');
+const { setInterval } = require('timers');
 
 const app = express();
 const server = http.createServer(app);
@@ -23,19 +24,17 @@ io.on('connection', (socket) => {
   let intervalId;
 
   function generateRandomNumber(index) {
-    const bitLength = Math.floor(Math.random() * (1024 - 128 + 1)) + 128; // Random length between 128 and 1024
+    const bitLength = Math.floor(Math.random() * (1024 - 128 + 1)) + 128; 
     const randomBinary = Array.from({ length: bitLength }, () => (Math.random() > 0.5 ? '1' : '0')).join('');
     return `${index},${randomBinary}`;
   }
 
   socket.on('startRandomNumbers', () => {
     console.log('Starting to send random numbers');
-    let index = 0;
-    intervalId = setInterval(() => {
-      const randomNumber = generateRandomNumber(index);
+    for (let i = 0; i < 8; i++) {
+      const randomNumber = generateRandomNumber(i);
       socket.emit('randomNumber', randomNumber);
-      index += 1;
-    }, 1000);
+    }
   });
 
   socket.on('stopRandomNumbers', () => {

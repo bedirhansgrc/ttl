@@ -623,7 +623,6 @@ function updateWaveformDisplay(message, asciiMessage = '') {
     fragmentSCL.appendChild(bitContainer);
   }
 
-  // Generate SDA waveform
   let previousBit = null;
   for (let i = 0; i < message.length; i++) {
     const bit = message[i];
@@ -684,27 +683,8 @@ function updateWaveformDisplay(message, asciiMessage = '') {
   sclWaveform.appendChild(fragmentSCL);
   sdaWaveform.appendChild(fragmentSDA);
 
-  asciiDisplay.innerText = " " + asciiMessage;
 }
 
-function binaryToAscii(binaryStr) {
-  let asciiStr = '';
-  for (let i = 0; i < binaryStr.length; i += 8) {
-    let byte = binaryStr.slice(i, i + 8);
-    let charCode = parseInt(byte, 2);
-    asciiStr += String.fromCharCode(charCode);
-  }
-  return asciiStr;
-}
-
-function createAsciiDisplay() {
-  const waveformBox = document.querySelector('.waveform-box');
-  const asciiDisplay = document.createElement('div');
-  asciiDisplay.id = 'asciiDisplay';
-  asciiDisplay.style.marginTop = '10px';
-  waveformBox.appendChild(asciiDisplay);
-  return asciiDisplay;
-}
 socket.on('disconnectAll', (reason) => {
   alert(reason);
   disconnectAllPorts();
