@@ -47,40 +47,63 @@ document.addEventListener('DOMContentLoaded', () => {
   const logicAnalyzer = document.getElementById('logic-analyzer');
 
   uartLink.addEventListener('click', () => {
-      uartViewer.style.display = 'flex';
-      logicAnalyzer.style.display = 'none';
-      uartLink.classList.add('active');
-      logicLink.classList.remove('active');
+    uartViewer.style.display = 'flex';
+    logicAnalyzer.style.display = 'none';
+    uartLink.classList.add('active');
+    logicLink.classList.remove('active');
   });
 
   logicLink.addEventListener('click', () => {
-      logicAnalyzer.style.display = 'flex';
-      uartViewer.style.display = 'none';
-      logicLink.classList.add('active');
-      uartLink.classList.remove('active');
+    logicAnalyzer.style.display = 'flex';
+    uartViewer.style.display = 'none';
+    logicLink.classList.add('active');
+    uartLink.classList.remove('active');
   });
 
   uartViewer.style.display = 'flex';
   logicAnalyzer.style.display = 'none';
   uartLink.classList.add('active');
 
-  // 8 adet boş waveform-box ekleyelim
+  // Initialize waveform display boxes
   const waveformDisplayContainer = document.getElementById('waveformDisplayContainer');
   for (let i = 0; i < 8; i++) {
     const waveformBox = document.createElement('div');
     waveformBox.classList.add('waveform-box');
     waveformBox.style.height = '195px';
-    waveformBox.style.width = '100%'; // Başlangıçta containerin içine sığacak şekilde ayarla
+    waveformBox.style.width = '1200px'; // Set a fixed width to ensure scrollability
 
-    // Index numarasını ekleyelim
+    // Assign a fixed index (socketID) to each waveform box
+    waveformBox.setAttribute('socketID', i);  // Assign socketID from 0 to 7
+
     const indexLabel = document.createElement('div');
     indexLabel.classList.add('index-label');
-    indexLabel.innerText = i;
-    waveformBox.appendChild(indexLabel);
+    indexLabel.innerText = i;  // Initial display index is same as socketID
+    indexLabel.style.border = '1px solid black';
+    indexLabel.style.display = 'inline-block';
+    indexLabel.style.padding = '5px';
+    indexLabel.style.cursor = 'pointer';
+    indexLabel.setAttribute('contenteditable', 'true');  // Make the div editable
 
+    indexLabel.addEventListener('blur', () => {
+      if (indexLabel.innerText.trim() === '') {
+        // Prevent empty index value
+        indexLabel.innerText = waveformBox.getAttribute('socketID');
+      }
+    });
+
+    indexLabel.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();  // Prevent newline
+        indexLabel.blur();  // Trigger blur event to save the value
+      }
+    });
+
+    waveformBox.appendChild(indexLabel);
     waveformDisplayContainer.appendChild(waveformBox);
   }
 });
+
+
 
 importButton.addEventListener('click', () => {
   importFile.click();
@@ -310,9 +333,9 @@ function createNewWaveformDisplay(message) {
   const waveformContainer = document.createElement('div');
   waveformContainer.classList.add('waveform-box');
   waveformContainer.style.height = '195px';
-  waveformContainer.style.width = '100%'; // Mesaj geldikçe genişliği artacak
+  waveformContainer.style.width = `${message.length * 20}px`; // Dynamic width based on message length
 
-  // Waveform numarasını ekle
+  // Add waveform number
   const waveformNumber = document.createElement('div');
   waveformNumber.classList.add('waveform-number');
   waveformNumber.innerText = ++waveformCount;
@@ -450,6 +473,7 @@ function createNewWaveformDisplay(message) {
   const waveformDisplayContainer = document.getElementById('waveformDisplayContainer');
   waveformDisplayContainer.insertBefore(waveformContainer, waveformDisplayContainer.firstChild);
 }
+
 
 function importMessages(messages) {
   if (Array.isArray(messages)) {
