@@ -63,6 +63,23 @@ document.addEventListener('DOMContentLoaded', () => {
   uartViewer.style.display = 'flex';
   logicAnalyzer.style.display = 'none';
   uartLink.classList.add('active');
+
+  // 8 adet boş waveform-box ekleyelim
+  const waveformDisplayContainer = document.getElementById('waveformDisplayContainer');
+  for (let i = 0; i < 8; i++) {
+    const waveformBox = document.createElement('div');
+    waveformBox.classList.add('waveform-box');
+    waveformBox.style.height = '195px';
+    waveformBox.style.width = '100%'; // Başlangıçta containerin içine sığacak şekilde ayarla
+
+    // Index numarasını ekleyelim
+    const indexLabel = document.createElement('div');
+    indexLabel.classList.add('index-label');
+    indexLabel.innerText = i;
+    waveformBox.appendChild(indexLabel);
+
+    waveformDisplayContainer.appendChild(waveformBox);
+  }
 });
 
 importButton.addEventListener('click', () => {
@@ -251,6 +268,12 @@ function closePort(portNumber) {
 }
 
 function displayMessage(message, type = 'received') {
+  let socketName = '';
+  const commaIndex = message.indexOf(',');
+  if (commaIndex !== -1) {
+    socketName = message.slice(0, commaIndex);
+    message = message.slice(commaIndex + 1);
+  }
   message = message.replace(/[\[\]]/g, ''); // Köşeli parantezleri temizle
 
   const messageContainer = document.createElement('div');
@@ -282,9 +305,12 @@ function displayMessage(message, type = 'received') {
   }
 }
 
+
 function createNewWaveformDisplay(message) {
   const waveformContainer = document.createElement('div');
   waveformContainer.classList.add('waveform-box');
+  waveformContainer.style.height = '195px';
+  waveformContainer.style.width = '100%'; // Mesaj geldikçe genişliği artacak
 
   // Waveform numarasını ekle
   const waveformNumber = document.createElement('div');
@@ -545,6 +571,12 @@ async function sendMessage(message, isPortMessage = false) {
     return;
   }
 
+  let socketName = '';
+  const commaIndex = message.indexOf(',');
+  if (commaIndex !== -1) {
+    socketName = message.slice(0, commaIndex);
+    message = message.slice(commaIndex + 1);
+  }
   message = message.replace(/[\[\]]/g, ''); // Köşeli parantezleri temizle
   const data = new TextEncoder().encode(message + '\n');
 
