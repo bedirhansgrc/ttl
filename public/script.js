@@ -1,4 +1,3 @@
-import Swal from 'sweetalert2';
 const socket = io();
 const connectButton = document.getElementById('connectButton');
 const disconnectButton = document.getElementById('disconnectButton');
@@ -34,8 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const logicLink = document.getElementById('logicLink');
   const uartViewer = document.getElementById('uart-viewer');
   const logicAnalyzer = document.getElementById('logic-analyzer');
-  const waveformBoxes = document.querySelectorAll('.waveform-box');
-  const indexLabels = {};
 
   uartLink.addEventListener('click', () => {
     uartViewer.style.display = 'flex';
@@ -62,27 +59,33 @@ document.addEventListener('DOMContentLoaded', () => {
     if (indexLabels[socketId]) {
       indexLabel.innerText = indexLabels[socketId];
     }
-    indexLabel.addEventListener('click', async () => {
-      const { value: newLabel } = await Swal.fire({
-        title: 'Enter new index',
-        input: 'text',
-        inputLabel: 'New Index',
-        inputValue: indexLabel.innerText,
-        showCancelButton: true,
-        inputValidator: (value) => {
-          if (!value) {
-            return 'You need to write something!';
-          }
+    indexLabel.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = indexLabel.innerText;
+      input.classList.add('index-input');
+      
+      input.addEventListener('blur', () => {
+        indexLabel.innerText = input.value;
+        indexLabels[socketId] = input.value; // Değiştirilen değeri sakla
+        indexLabel.style.display = 'block';
+        input.remove();
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          input.blur();
         }
       });
 
-      if (newLabel) {
-        indexLabel.innerText = newLabel;
-        indexLabels[socketId] = newLabel; // Save the changed value
-      }
+      indexLabel.style.display = 'none';
+      box.appendChild(input);
+      input.focus();
     });
   });
 });
+
+
 
 importButton.addEventListener('click', () => {
   importFile.click();
@@ -97,14 +100,12 @@ importFile.addEventListener('change', (event) => {
         const messages = JSON.parse(e.target.result);
         importMessages(messages);
       } catch (error) {
-        console.error('JSON parse error:', error);
         alert('Invalid JSON file');
       }
     };
     reader.readAsText(file);
   }
 });
-
 
 setBaudRateButton.addEventListener('click', () => {
   const baudRateValue = baudRateInput.value.trim();
@@ -271,13 +272,6 @@ function closePort(portNumber) {
   }
 }
 
-function importMessages(messages) {
-  messages.forEach(msg => {
-    const messageText = msg.message;
-    displayMessage(messageText, 'imported');
-  });
-}
-
 function displayMessage(message, type = 'received') {
   const parsedMessage = parseMessage(message);
   if (!parsedMessage) {
@@ -314,12 +308,11 @@ function displayMessage(message, type = 'received') {
     updateWaveformDisplay(socketid, content);
   }
 
-  if (type === 'imported' && !allMessages.includes(message)) {
+  if (type === 'sent' && !allMessages.includes(message)) {
     addToMessageList(message, type);
     allMessages.push(message);
   }
 }
-
 
 function parseMessage(message) {
   console.log(`Parsing message: ${message}`);

@@ -634,15 +634,3 @@ button[type="submit"]:hover {
   font-weight: bold;
   font-family: Arial, sans-serif;
 }
-.popup-input {
-  position: absolute;
-  width: 150px;
-  padding: 10px;
-  font-size: 16px;
-  border: 1px solid #007bff;
-  border-radius: 5px;
-  background-color: white;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  z-index: 10;
-  outline: none;
-}
