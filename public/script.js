@@ -13,6 +13,8 @@ const importButton = document.getElementById('importButton');
 const importFile = document.getElementById('importFile');
 const waveformBoxes = document.querySelectorAll('.waveform-box');
 const waveformDisplayContainer = document.getElementById('waveformDisplayContainer');
+const form = document.getElementById('messageForm');
+const indexLabels = {};
 let baudRate;
 let ports = [];
 let readers = [];
@@ -49,7 +51,41 @@ document.addEventListener('DOMContentLoaded', () => {
   uartViewer.style.display = 'flex';
   logicAnalyzer.style.display = 'none';
   uartLink.classList.add('active');
+
+  // Add event listeners to make index labels editable
+  waveformBoxes.forEach(box => {
+    const indexLabel = box.querySelector('.index-label');
+    const socketId = box.getAttribute('socketid');
+    if (indexLabels[socketId]) {
+      indexLabel.innerText = indexLabels[socketId];
+    }
+    indexLabel.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = indexLabel.innerText;
+      input.classList.add('index-input');
+      
+      input.addEventListener('blur', () => {
+        indexLabel.innerText = input.value;
+        indexLabels[socketId] = input.value; // Değiştirilen değeri sakla
+        indexLabel.style.display = 'block';
+        input.remove();
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          input.blur();
+        }
+      });
+
+      indexLabel.style.display = 'none';
+      box.appendChild(input);
+      input.focus();
+    });
+  });
 });
+
+
 
 importButton.addEventListener('click', () => {
   importFile.click();
@@ -299,7 +335,7 @@ function updateWaveformDisplay(socketid, message) {
   }
 
   // Clear the target box except for the index label
-  targetBox.innerHTML = `<div class="index-label">${socketid}</div>`;
+  targetBox.innerHTML = `<div class="index-label">${indexLabels[socketid] || socketid}</div>`; // Değiştirilen değeri kullan
 
   const fragmentSCL = document.createDocumentFragment();
   const fragmentSDA = document.createDocumentFragment();
@@ -424,7 +460,34 @@ function updateWaveformDisplay(socketid, message) {
   hexWaveform.innerHTML = '<div class="waveform-label">Hex:</div>';
   hexWaveform.appendChild(fragmentHex);
   targetBox.appendChild(hexWaveform);
+
+  // Add event listeners to make index labels editable again
+  const indexLabel = targetBox.querySelector('.index-label');
+  indexLabel.addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = indexLabel.innerText;
+    input.classList.add('index-input');
+    
+    input.addEventListener('blur', () => {
+      indexLabel.innerText = input.value;
+      indexLabels[socketid] = input.value; // Değiştirilen değeri sakla
+      indexLabel.style.display = 'block';
+      input.remove();
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        input.blur();
+      }
+    });
+
+    indexLabel.style.display = 'none';
+    targetBox.appendChild(input);
+    input.focus();
+  });
 }
+
 
 socket.on('disconnectAll', (reason) => {
   alert(reason);
@@ -446,9 +509,15 @@ socket.on('randomNumber', (number) => {
 });
 
 socket.on('message', (data) => {
+  if (!baudRate || ports.length === 0) {
+    console.warn('Received message but no baud rate set or no port connected.');
+    return;
+  }
+
   console.log(`Message received: ${data.message}`);
   displayMessage(data.message, 'received');
 });
+
 
 function addToMessageList(message, type, number) {
   const messageList = document.getElementById('messageList');
@@ -540,7 +609,7 @@ function binaryToAscii(binaryStr) {
 }
 
 async function sendMessage(message, isPortMessage = false) {
-  if (!baudRate || Object.keys(activePorts).length === 0) {
+  if (!baudRate || ports.length === 0) {
     alert('Please set the baud rate and connect to a serial port before sending a message.');
     return;
   }
@@ -554,8 +623,6 @@ async function sendMessage(message, isPortMessage = false) {
   if (!message.endsWith(']')) {
     message = message + ']';
   }
-
-  const isBinaryMessage = /^[01]+$/.test(message);
 
   const uniqueBaudRates = [...new Set(connectedBaudRates)];
   if (uniqueBaudRates.length > 1) {
@@ -575,20 +642,24 @@ async function sendMessage(message, isPortMessage = false) {
   const data = new TextEncoder().encode(message + '\n');
 
   try {
-    for (let i = 0; i < writers.length; i++) {
-      if (activePorts[portIds[i]]) {
-        await writers[i].write(data);
-        console.log(`Message sent from Port ${portIds[i]} with baud rate ${baudRate}: ${message}`);
-        displayMessage(`[${socketid},${message}]`, 'sent'); // Gönderilen mesajı 'sent' olarak işaretle
-        socket.emit('message', { message: `[${socketid},${message}]`, port: portIds[i], baudRate: baudRate });
+    if (isPortMessage) {
+      for (let i = 0; i < writers.length; i++) {
+        if (activePorts[portIds[i]]) {
+          await writers[i].write(data);
+          console.log(`Message sent from Port ${portIds[i]} with baud rate ${baudRate}: ${message}`);
+          displayMessage(`[${socketid},${message}]`, 'sent'); // Gönderilen mesajı 'sent' olarak işaretle
+          socket.emit('message', { message: `[${socketid},${message}]`, port: portIds[i], baudRate: baudRate });
+        }
       }
+    } else {
+      displayMessage(`[${socketid},${message}]`, 'sent');
+      socket.emit('message', { message: `[${socketid},${message}]` });
     }
   } catch (error) {
     console.error('Error sending message:', error);
   }
 }
 
-const form = document.getElementById('messageForm');
 
 form.addEventListener('submit', (e) => {
   e.preventDefault();
