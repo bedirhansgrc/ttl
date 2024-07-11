@@ -509,6 +509,7 @@ button[type="submit"]:hover {
   margin-bottom: 10px;
   background-color: #e9ecef;
   border-radius: 5px;
+  padding-left: 100px;
   position: relative;
   overflow-x: hidden;
   overflow-y: hidden;
@@ -605,17 +606,21 @@ button[type="submit"]:hover {
 }
 .index-label {
   position: absolute;
-  top: 50%;
-  left: 10px;
-  transform: translateY(-50%);
-  background-color: #f0f0f0;
-  border-radius: 5px;
+  left: 0;
+  top: 40%;
   padding: 5px;
-  margin: 10px;
-  user-select: none;
-  cursor: pointer;
-  border: 1px solid black;
-  display: inline-block;
+  min-width: 20px;
+  max-width: 75px;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid black;
+  border-radius: 10px;
+  background-color: white;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
 }
 .hex-box {
   display: inline-block;
