@@ -9,24 +9,10 @@ const exportButton = document.getElementById('exportButton');
 const pairedStatus = document.getElementById('pairedStatus');
 const startEmulatorButton = document.getElementById('startEmulatorButton');
 const stopEmulatorButton = document.getElementById('stopEmulatorButton');
-const style = document.createElement('style');
 const importButton = document.getElementById('importButton');
 const importFile = document.getElementById('importFile');
-style.innerHTML = `
-  .hex-box {
-    display: inline-block;
-    width: 156px;  // Genişliği artırıyoruz
-    height: 40px;  // Yüksekliği artırıyoruz
-    line-height: 40px;
-    text-align: center;
-    border: 2px solid #000;
-    border-radius: 10px;
-    background-color: #f4a261;
-    font-weight: bold;
-    font-family: Arial, sans-serif;  // Daha iyi okunabilirlik için font ekliyoruz
-  }
-`;
-document.head.appendChild(style);
+const waveformBoxes = document.querySelectorAll('.waveform-box');
+const waveformDisplayContainer = document.getElementById('waveformDisplayContainer');
 let baudRate;
 let ports = [];
 let readers = [];
@@ -63,48 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
   uartViewer.style.display = 'flex';
   logicAnalyzer.style.display = 'none';
   uartLink.classList.add('active');
-
-  // Initialize waveform display boxes
-  const waveformDisplayContainer = document.getElementById('waveformDisplayContainer');
-  for (let i = 0; i < 8; i++) {
-    const waveformBox = document.createElement('div');
-    waveformBox.classList.add('waveform-box');
-    waveformBox.style.height = '195px';
-    waveformBox.style.width = '1800px'; // Set a fixed width to ensure scrollability
-
-    // Assign a fixed index (socketID) to each waveform box
-    waveformBox.setAttribute('socketID', i);  // Assign socketID from 0 to 7
-
-    const indexLabel = document.createElement('div');
-    indexLabel.classList.add('index-label');
-    indexLabel.innerText = i;  // Initial display index is same as socketID
-    indexLabel.style.border = '1px solid black';
-    indexLabel.style.display = 'inline-block';
-    indexLabel.style.padding = '5px';
-    indexLabel.style.cursor = 'pointer';
-    indexLabel.setAttribute('contenteditable', 'true');  // Make the div editable
-
-    indexLabel.addEventListener('blur', () => {
-      if (indexLabel.innerText.trim() === '') {
-        // Prevent empty index value
-        indexLabel.innerText = waveformBox.getAttribute('socketID');
-      }
-    });
-
-    indexLabel.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
-        event.preventDefault();  // Prevent newline
-        indexLabel.blur();  // Trigger blur event to save the value
-      }
-    });
-
-    waveformBox.appendChild(indexLabel);
-    waveformDisplayContainer.appendChild(waveformBox);
-  }
 });
-
-
-
 
 importButton.addEventListener('click', () => {
   importFile.click();
@@ -292,19 +237,23 @@ function closePort(portNumber) {
 }
 
 function displayMessage(message, type = 'received') {
-  let socketName = '';
-  const commaIndex = message.indexOf(',');
-  if (commaIndex !== -1) {
-    socketName = message.slice(0, commaIndex);
-    message = message.slice(commaIndex + 1);
+  const parsedMessage = parseMessage(message);
+  if (!parsedMessage) {
+    console.error('Failed to parse message');
+    return;
   }
-  message = message.replace(/[\[\]]/g, ''); // Köşeli parantezleri temizle
+
+  const socketid = parsedMessage.socketid;
+  const content = parsedMessage.content;
+
+  console.log(`Parsed socketid: ${socketid}`);
+  console.log(`Parsed content: ${content}`);
 
   const messageContainer = document.createElement('div');
   messageContainer.classList.add(type === 'sent' ? 'message-sent' : 'message-received');
 
   const p = document.createElement('p');
-  p.innerText = message;
+  p.innerText = content;
   messageContainer.appendChild(p);
 
   const now = new Date();
@@ -319,8 +268,8 @@ function displayMessage(message, type = 'received') {
   dataDiv.appendChild(messageContainer);
   dataDiv.scrollTop = dataDiv.scrollHeight;
 
-  if (/^[01]+$/.test(message)) {
-    createNewWaveformDisplay(message);
+  if (/^[01]+$/.test(content)) {
+    updateWaveformDisplay(socketid, content);
   }
 
   if (type === 'sent' && !allMessages.includes(message)) {
@@ -329,165 +278,177 @@ function displayMessage(message, type = 'received') {
   }
 }
 
+function parseMessage(message) {
+  console.log(`Parsing message: ${message}`);
+  const commaIndex = message.indexOf(',');
+  if (commaIndex !== -1 && message.startsWith('[') && message.endsWith(']')) {
+    const socketid = message.slice(1, commaIndex); // [ ve virgül arasındaki değeri al
+    const content = message.slice(commaIndex + 1, -1); // virgülden sonrasını al, sonundaki ]'i temizle
+    return { socketid, content };
+  }
+  return null;
+}
 
-function createNewWaveformDisplay(message) {
-  const waveformContainer = document.createElement('div');
-  waveformContainer.classList.add('waveform-box');
-  waveformContainer.style.height = '195px';
-  waveformContainer.style.width = `${message.length * 20}px`; // Dynamic width based on message length
+function updateWaveformDisplay(socketid, message) {
+  // socketid'yi string olarak saklayıp karşılaştır
+  const targetBox = Array.from(waveformBoxes).find(box => box.getAttribute('socketid') === socketid);
 
-  // Add waveform number
-  const waveformNumber = document.createElement('div');
-  waveformNumber.classList.add('waveform-number');
-  waveformNumber.innerText = ++waveformCount;
-  waveformContainer.appendChild(waveformNumber);
+  if (!targetBox) {
+    console.warn(`No waveform box found for socketid ${socketid}`);
+    return;
+  }
 
-  const isValidMessage = /^[01]+$/.test(message);
-  if (!isValidMessage) {
-    waveformContainer.innerHTML = '<div>Invalid message format</div>';
-  } else {
-    const fragmentSCL = document.createDocumentFragment();
-    const fragmentSDA = document.createDocumentFragment();
-    const fragmentHex = document.createDocumentFragment();
+  // Clear the target box except for the index label
+  targetBox.innerHTML = `<div class="index-label">${socketid}</div>`;
 
-    const borderWidth = '2px';
+  const fragmentSCL = document.createDocumentFragment();
+  const fragmentSDA = document.createDocumentFragment();
+  const fragmentHex = document.createDocumentFragment();
 
-    for (let i = 0; i < message.length * 2; i++) {
-      const bitContainer = document.createElement('div');
-      bitContainer.style.display = 'inline-block';
-      bitContainer.style.position = 'relative';
-      bitContainer.style.height = '50px';
-      bitContainer.style.width = '10px';
-      const verticalLine = document.createElement('div');
-      verticalLine.style.position = 'absolute';
-      verticalLine.style.width = borderWidth;
-      verticalLine.style.backgroundColor = 'grey';
+  const borderWidth = '2px';
 
-      const horizontalLine = document.createElement('div');
-      horizontalLine.style.position = 'absolute';
-      horizontalLine.style.height = borderWidth;
-      horizontalLine.style.width = '100%';
+  for (let i = 0; i < message.length * 2; i++) {
+    const bitContainer = document.createElement('div');
+    bitContainer.style.display = 'inline-block';
+    bitContainer.style.position = 'relative';
+    bitContainer.style.height = '50px';
+    bitContainer.style.width = '10px';
+    const verticalLine = document.createElement('div');
+    verticalLine.style.position = 'absolute';
+    verticalLine.style.width = borderWidth;
+    verticalLine.style.backgroundColor = 'grey';
 
-      if (i % 2 === 0) {
-        horizontalLine.style.top = '0';
-        horizontalLine.style.backgroundColor = 'blue';
-        verticalLine.style.bottom = '0';
-        verticalLine.style.height = '100%';
-      } else {
-        horizontalLine.style.bottom = '0';
-        horizontalLine.style.backgroundColor = 'blue';
+    const horizontalLine = document.createElement('div');
+    horizontalLine.style.position = 'absolute';
+    horizontalLine.style.height = borderWidth;
+    horizontalLine.style.width = '100%';
+
+    if (i % 2 === 0) {
+      horizontalLine.style.top = '0';
+      horizontalLine.style.backgroundColor = 'blue';
+      verticalLine.style.bottom = '0';
+      verticalLine.style.height = '100%';
+    } else {
+      horizontalLine.style.bottom = '0';
+      horizontalLine.style.backgroundColor = 'blue';
+      verticalLine.style.top = '0';
+      verticalLine.style.height = '100%';
+    }
+
+    bitContainer.appendChild(verticalLine);
+    bitContainer.appendChild(horizontalLine);
+    fragmentSCL.appendChild(bitContainer);
+  }
+
+  let previousBit = null;
+  let hexIndex = 0;
+  for (let i = 0; i < message.length; i++) {
+    const bit = message[i];
+
+    const bitContainer = document.createElement('div');
+    bitContainer.style.display = 'inline-block';
+    bitContainer.style.position = 'relative';
+    bitContainer.style.height = '70px';
+    bitContainer.style.width = '20px';
+
+    const verticalLine = document.createElement('div');
+    verticalLine.style.position = 'absolute';
+    verticalLine.style.width = borderWidth;
+    verticalLine.style.backgroundColor = 'grey';
+
+    const horizontalLine = document.createElement('div');
+    horizontalLine.style.position = 'absolute';
+    horizontalLine.style.height = borderWidth;
+    horizontalLine.style.width = '100%';
+
+    if (bit === '0') {
+      horizontalLine.style.bottom = '20px';
+      horizontalLine.style.backgroundColor = 'red';
+      if (previousBit === '1') {
         verticalLine.style.top = '0';
-        verticalLine.style.height = '100%';
+        verticalLine.style.height = 'calc(100% - 20px)';
+      } else {
+        verticalLine.style.display = 'none';
       }
-
-      bitContainer.appendChild(verticalLine);
-      bitContainer.appendChild(horizontalLine);
-      fragmentSCL.appendChild(bitContainer);
+    } else if (bit === '1') {
+      horizontalLine.style.top = '0';
+      horizontalLine.style.backgroundColor = 'green';
+      if (previousBit === '0') {
+        verticalLine.style.bottom = '20px';
+        verticalLine.style.height = 'calc(100% - 20px)';
+      } else {
+        verticalLine.style.display = 'none';
+      }
     }
 
-    let previousBit = null;
-    let hexIndex = 0;
-    for (let i = 0; i < message.length; i++) {
-      const bit = message[i];
+    const bitLabel = document.createElement('div');
+    bitLabel.style.position = 'absolute';
+    bitLabel.style.bottom = '0';
+    bitLabel.style.width = '100%';
+    bitLabel.style.textAlign = 'center';
+    bitLabel.innerText = bit;
 
-      const bitContainer = document.createElement('div');
-      bitContainer.style.display = 'inline-block';
-      bitContainer.style.position = 'relative';
-      bitContainer.style.height = '70px';
-      bitContainer.style.width = '20px';
+    bitContainer.appendChild(verticalLine);
+    bitContainer.appendChild(horizontalLine);
+    bitContainer.appendChild(bitLabel);
 
-      const verticalLine = document.createElement('div');
-      verticalLine.style.position = 'absolute';
-      verticalLine.style.width = borderWidth;
-      verticalLine.style.backgroundColor = 'grey';
+    fragmentSDA.appendChild(bitContainer);
 
-      const horizontalLine = document.createElement('div');
-      horizontalLine.style.position = 'absolute';
-      horizontalLine.style.height = borderWidth;
-      horizontalLine.style.width = '100%';
-
-      if (bit === '0') {
-        horizontalLine.style.bottom = '20px';
-        horizontalLine.style.backgroundColor = 'red';
-        if (previousBit === '1') {
-          verticalLine.style.top = '0';
-          verticalLine.style.height = 'calc(100% - 20px)';
-        } else {
-          verticalLine.style.display = 'none';
-        }
-      } else if (bit === '1') {
-        horizontalLine.style.top = '0';
-        horizontalLine.style.backgroundColor = 'green';
-        if (previousBit === '0') {
-          verticalLine.style.bottom = '20px';
-          verticalLine.style.height = 'calc(100% - 20px)';
-        } else {
-          verticalLine.style.display = 'none';
-        }
-      }
-
-      const bitLabel = document.createElement('div');
-      bitLabel.style.position = 'absolute';
-      bitLabel.style.bottom = '0';
-      bitLabel.style.width = '100%';
-      bitLabel.style.textAlign = 'center';
-      bitLabel.innerText = bit;
-
-      bitContainer.appendChild(verticalLine);
-      bitContainer.appendChild(horizontalLine);
-      bitContainer.appendChild(bitLabel);
-
-      fragmentSDA.appendChild(bitContainer);
-
-      if ((i + 1) % 8 === 0) {
-        const byte = message.slice(i - 7, i + 1);
-        const hexValue = parseInt(byte, 2).toString(16).toUpperCase();
-        const hexContainer = document.createElement('div');
-        hexContainer.classList.add('hex-box');
-        hexContainer.innerText = hexValue;
-        fragmentHex.appendChild(hexContainer);
-        hexIndex++;
-      }
-
-      previousBit = bit;
+    if ((i + 1) % 8 === 0) {
+      const byte = message.slice(i - 7, i + 1);
+      const hexValue = parseInt(byte, 2).toString(16).toUpperCase();
+      const hexContainer = document.createElement('div');
+      hexContainer.classList.add('hex-box');
+      hexContainer.innerText = hexValue;
+      fragmentHex.appendChild(hexContainer);
+      hexIndex++;
     }
 
-    const sclWaveform = document.createElement('div');
-    sclWaveform.classList.add('waveform-row');
-    sclWaveform.innerHTML = '<div class="waveform-label">SCL:</div>';
-    sclWaveform.appendChild(fragmentSCL);
-    waveformContainer.appendChild(sclWaveform);
-
-    const sdaWaveform = document.createElement('div');
-    sdaWaveform.classList.add('waveform-row');
-    sdaWaveform.innerHTML = '<div class="waveform-label">SDA:</div>';
-    sdaWaveform.appendChild(fragmentSDA);
-    waveformContainer.appendChild(sdaWaveform);
-
-    const hexWaveform = document.createElement('div');
-    hexWaveform.classList.add('waveform-row');
-    hexWaveform.innerHTML = '<div class="waveform-label">Hex:</div>';
-    hexWaveform.appendChild(fragmentHex);
-    waveformContainer.appendChild(hexWaveform);
+    previousBit = bit;
   }
 
-  const waveformDisplayContainer = document.getElementById('waveformDisplayContainer');
-  waveformDisplayContainer.insertBefore(waveformContainer, waveformDisplayContainer.firstChild);
+  const sclWaveform = document.createElement('div');
+  sclWaveform.classList.add('waveform-row');
+  sclWaveform.innerHTML = '<div class="waveform-label">SCL:</div>';
+  sclWaveform.appendChild(fragmentSCL);
+  targetBox.appendChild(sclWaveform);
+
+  const sdaWaveform = document.createElement('div');
+  sdaWaveform.classList.add('waveform-row');
+  sdaWaveform.innerHTML = '<div class="waveform-label">SDA:</div>';
+  sdaWaveform.appendChild(fragmentSDA);
+  targetBox.appendChild(sdaWaveform);
+
+  const hexWaveform = document.createElement('div');
+  hexWaveform.classList.add('waveform-row');
+  hexWaveform.innerHTML = '<div class="waveform-label">Hex:</div>';
+  hexWaveform.appendChild(fragmentHex);
+  targetBox.appendChild(hexWaveform);
 }
 
+socket.on('disconnectAll', (reason) => {
+  alert(reason);
+  disconnectAllPorts();
+});
 
-function importMessages(messages) {
-  if (Array.isArray(messages)) {
-    messages.reverse().forEach((msgObj, index) => {
-      if (msgObj.message) {
-        addToMessageList(msgObj.message, 'imported', messages.length - index);
-        allMessages.unshift(msgObj.message); // Add to the beginning of allMessages array
-      }
-    });
-  } else {
-    alert('Invalid format: JSON should be an array of message objects.');
+socket.on('randomNumber', (number) => {
+  console.log(`Random number received: ${number}`);
+  number = `[${number},0101010101010]`; // Mesajın formatını güncelle
+
+  const parsedMessage = parseMessage(number);
+  if (!parsedMessage) {
+    console.error('Failed to parse message');
+    return;
   }
-}
+
+  const displayContent = parsedMessage.content;
+  displayMessage(`[${parsedMessage.socketid},${displayContent}]`, 'received');
+});
+
+socket.on('message', (data) => {
+  console.log(`Message received: ${data.message}`);
+  displayMessage(data.message, 'received');
+});
 
 function addToMessageList(message, type, number) {
   const messageList = document.getElementById('messageList');
@@ -586,6 +547,14 @@ async function sendMessage(message, isPortMessage = false) {
 
   message = message.replace(/\s+/g, '');
 
+  // Mesajın formatını kontrol et ve gerekirse düzelt
+  if (!message.startsWith('[')) {
+    message = '[' + message;
+  }
+  if (!message.endsWith(']')) {
+    message = message + ']';
+  }
+
   const isBinaryMessage = /^[01]+$/.test(message);
 
   const uniqueBaudRates = [...new Set(connectedBaudRates)];
@@ -596,11 +565,11 @@ async function sendMessage(message, isPortMessage = false) {
     return;
   }
 
-  let socketName = '';
+  let socketid = '';
   const commaIndex = message.indexOf(',');
   if (commaIndex !== -1) {
-    socketName = message.slice(0, commaIndex);
-    message = message.slice(commaIndex + 1);
+    socketid = message.slice(1, commaIndex);
+    message = message.slice(commaIndex + 1, -1);
   }
   message = message.replace(/[\[\]]/g, ''); // Köşeli parantezleri temizle
   const data = new TextEncoder().encode(message + '\n');
@@ -610,148 +579,30 @@ async function sendMessage(message, isPortMessage = false) {
       if (activePorts[portIds[i]]) {
         await writers[i].write(data);
         console.log(`Message sent from Port ${portIds[i]} with baud rate ${baudRate}: ${message}`);
-        displayMessage(message, 'sent'); // Gönderilen mesajı 'sent' olarak işaretle
-        socket.emit('message', { message, port: portIds[i], baudRate: baudRate });
+        displayMessage(`[${socketid},${message}]`, 'sent'); // Gönderilen mesajı 'sent' olarak işaretle
+        socket.emit('message', { message: `[${socketid},${message}]`, port: portIds[i], baudRate: baudRate });
       }
     }
   } catch (error) {
     console.error('Error sending message:', error);
   }
 }
+
 const form = document.getElementById('messageForm');
 
 form.addEventListener('submit', (e) => {
   e.preventDefault();
-  const message = document.getElementById('message').value.trim();
+  let message = document.getElementById('message').value.trim();
   if (message) {
+    // Mesajın formatını kontrol et ve gerekirse düzelt
+    if (!message.startsWith('[')) {
+      message = '[' + message;
+    }
+    if (!message.endsWith(']')) {
+      message = message + ']';
+    }
+
     sendMessage(message);
     document.getElementById('message').value = '';
   }
-});
-
-function updateWaveformDisplay(message, asciiMessage = '') {
-  const isValidMessage = /^[01]+$/.test(message);
-  if (!isValidMessage) {
-    document.getElementById('sclWaveform').innerHTML = '';
-    document.getElementById('sdaWaveform').innerHTML = '';
-    document.getElementById('asciiDisplay').innerHTML = '';
-    return;
-  }
-
-  const sclWaveform = document.getElementById('sclWaveform');
-  const sdaWaveform = document.getElementById('sdaWaveform');
-  const asciiDisplay = document.getElementById('asciiDisplay');
-
-  const fragmentSCL = document.createDocumentFragment();
-  const fragmentSDA = document.createDocumentFragment();
-
-  const borderWidth = '2px';
-
-  for (let i = 0; i < message.length * 2; i++) {
-    const bitContainer = document.createElement('div');
-    bitContainer.style.display = 'inline-block';
-    bitContainer.style.position = 'relative';
-    bitContainer.style.height = '50px';
-    bitContainer.style.width = '10px';
-    const verticalLine = document.createElement('div');
-    verticalLine.style.position = 'absolute';
-    verticalLine.style.width = borderWidth;
-    verticalLine.style.backgroundColor = 'grey';
-
-    const horizontalLine = document.createElement('div');
-    horizontalLine.style.position = 'absolute';
-    horizontalLine.style.height = borderWidth;
-    horizontalLine.style.width = '100%';
-
-    if (i % 2 === 0) {
-      horizontalLine.style.top = '0';
-      horizontalLine.style.backgroundColor = 'blue';
-      verticalLine.style.bottom = '0';
-      verticalLine.style.height = '100%';
-    } else {
-      horizontalLine.style.bottom = '0';
-      horizontalLine.style.backgroundColor = 'blue';
-      verticalLine.style.top = '0';
-      verticalLine.style.height = '100%';
-    }
-
-    bitContainer.appendChild(verticalLine);
-    bitContainer.appendChild(horizontalLine);
-    fragmentSCL.appendChild(bitContainer);
-  }
-
-  let previousBit = null;
-  for (let i = 0; i < message.length; i++) {
-    const bit = message[i];
-
-    const bitContainer = document.createElement('div');
-    bitContainer.style.display = 'inline-block';
-    bitContainer.style.position = 'relative';
-    bitContainer.style.height = '70px';
-    bitContainer.style.width = '20px';
-
-    const verticalLine = document.createElement('div');
-    verticalLine.style.position = 'absolute';
-    verticalLine.style.width = borderWidth;
-    verticalLine.style.backgroundColor = 'grey';
-
-    const horizontalLine = document.createElement('div');
-    horizontalLine.style.position = 'absolute';
-    horizontalLine.style.height = borderWidth;
-    horizontalLine.style.width = '100%';
-
-    if (bit === '0') {
-      horizontalLine.style.bottom = '20px';
-      horizontalLine.style.backgroundColor = 'red';
-      if (previousBit === '1') {
-        verticalLine.style.top = '0';
-        verticalLine.style.height = 'calc(100% - 20px)';
-      } else {
-        verticalLine.style.display = 'none';
-      }
-    } else if (bit === '1') {
-      horizontalLine.style.top = '0';
-      horizontalLine.style.backgroundColor = 'green';
-      if (previousBit === '0') {
-        verticalLine.style.bottom = '20px';
-        verticalLine.style.height = 'calc(100% - 20px)';
-      } else {
-        verticalLine.style.display = 'none';
-      }
-    }
-
-    const bitLabel = document.createElement('div');
-    bitLabel.style.position = 'absolute';
-    bitLabel.style.bottom = '0';
-    bitLabel.style.width = '100%';
-    bitLabel.style.textAlign = 'center';
-    bitLabel.innerText = bit;
-
-    bitContainer.appendChild(verticalLine);
-    bitContainer.appendChild(horizontalLine);
-    bitContainer.appendChild(bitLabel);
-
-    fragmentSDA.appendChild(bitContainer);
-    previousBit = bit;
-  }
-
-  sclWaveform.innerHTML = '';
-  sdaWaveform.innerHTML = '';
-  sclWaveform.appendChild(fragmentSCL);
-  sdaWaveform.appendChild(fragmentSDA);
-
-}
-
-socket.on('disconnectAll', (reason) => {
-  alert(reason);
-  disconnectAllPorts();
-});
-
-socket.on('randomNumber', (number) => {
-  number = `[${number}]`;
-
-  const numberParts = number.split(',');
-  const displayContent = numberParts.length > 1 ? numberParts[1] : number;
-
-  sendMessage(displayContent, true);
 });

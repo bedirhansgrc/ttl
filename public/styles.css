@@ -341,10 +341,12 @@ button[type="submit"]:hover {
   background-color: #e9ecef;
   border-radius: 5px;
   position: relative;
-  overflow-x: scroll;
-  overflow-y: auto;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  display: block;
+  width: max-content; 
+  white-space: nowrap;
 }
-
 .waveform-row {
   display: flex;
   align-items: center;
@@ -513,6 +515,8 @@ button[type="submit"]:hover {
   display: block;
   width: max-content; 
   white-space: nowrap;
+  height: 195px;
+  min-width: 1800px;
 }
 
 .waveform-row {
@@ -602,7 +606,7 @@ button[type="submit"]:hover {
 .index-label {
   position: absolute;
   top: 50%;
-  left: 0;
+  left: 10px;
   transform: translateY(-50%);
   background-color: #f0f0f0;
   border-radius: 5px;
@@ -610,4 +614,18 @@ button[type="submit"]:hover {
   margin: 10px;
   user-select: none;
   cursor: pointer;
+  border: 1px solid black;
+  display: inline-block;
+}
+.hex-box {
+  display: inline-block;
+  width: 156px;
+  height: 40px;
+  line-height: 40px;
+  text-align: center;
+  border: 2px solid #000;
+  border-radius: 10px;
+  background-color: #f4a261;
+  font-weight: bold;
+  font-family: Arial, sans-serif;
 }

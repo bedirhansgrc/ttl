@@ -45,15 +45,39 @@
     <div id="logic-analyzer" class="tab-content" style="display:none;">
         <div id="waveformDisplayContainer2" class="container">
             <h2>Waveform Display</h2>
-            <div id="waveformDisplayContainer" class="waveform-display-container"></div>
+            <div id="waveformDisplayContainer" class="waveform-display-container">
+                <!-- Waveform Boxes -->
+                <div class="waveform-box" socketid="0">
+                    <div class="index-label">0</div>
+                </div>
+                <div class="waveform-box" socketid="1">
+                    <div class="index-label">1</div>
+                </div>
+                <div class="waveform-box" socketid="2">
+                    <div class="index-label">2</div>
+                </div>
+                <div class="waveform-box" socketid="3">
+                    <div class="index-label">3</div>
+                </div>
+                <div class="waveform-box" socketid="4">
+                    <div class="index-label">4</div>
+                </div>
+                <div class="waveform-box" socketid="5">
+                    <div class="index-label">5</div>
+                </div>
+                <div class="waveform-box" socketid="6">
+                    <div class="index-label">6</div>
+                </div>
+                <div class="waveform-box" socketid="7">
+                    <div class="index-label">7</div>
+                </div>
+            </div>
             <div class="button-container">
                 <button id="startEmulatorButton" class="emulator-button">Start Emulator</button>
                 <button id="stopEmulatorButton" class="emulator-button">Stop Emulator</button>
             </div>
         </div>
     </div>
-    
-    
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
 </body>
