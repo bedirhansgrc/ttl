@@ -1,3 +1,4 @@
+import Swal from 'sweetalert2';
 const socket = io();
 const connectButton = document.getElementById('connectButton');
 const disconnectButton = document.getElementById('disconnectButton');
@@ -33,6 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const logicLink = document.getElementById('logicLink');
   const uartViewer = document.getElementById('uart-viewer');
   const logicAnalyzer = document.getElementById('logic-analyzer');
+  const waveformBoxes = document.querySelectorAll('.waveform-box');
+  const indexLabels = {};
 
   uartLink.addEventListener('click', () => {
     uartViewer.style.display = 'flex';
@@ -59,33 +62,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if (indexLabels[socketId]) {
       indexLabel.innerText = indexLabels[socketId];
     }
-    indexLabel.addEventListener('click', () => {
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.value = indexLabel.innerText;
-      input.classList.add('index-input');
-      
-      input.addEventListener('blur', () => {
-        indexLabel.innerText = input.value;
-        indexLabels[socketId] = input.value; // Değiştirilen değeri sakla
-        indexLabel.style.display = 'block';
-        input.remove();
-      });
-
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          input.blur();
+    indexLabel.addEventListener('click', async () => {
+      const { value: newLabel } = await Swal.fire({
+        title: 'Enter new index',
+        input: 'text',
+        inputLabel: 'New Index',
+        inputValue: indexLabel.innerText,
+        showCancelButton: true,
+        inputValidator: (value) => {
+          if (!value) {
+            return 'You need to write something!';
+          }
         }
       });
 
-      indexLabel.style.display = 'none';
-      box.appendChild(input);
-      input.focus();
+      if (newLabel) {
+        indexLabel.innerText = newLabel;
+        indexLabels[socketId] = newLabel; // Save the changed value
+      }
     });
   });
 });
-
-
 
 importButton.addEventListener('click', () => {
   importFile.click();
