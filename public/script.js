@@ -100,12 +100,14 @@ importFile.addEventListener('change', (event) => {
         const messages = JSON.parse(e.target.result);
         importMessages(messages);
       } catch (error) {
+        console.error('JSON parse error:', error);
         alert('Invalid JSON file');
       }
     };
     reader.readAsText(file);
   }
 });
+
 
 setBaudRateButton.addEventListener('click', () => {
   const baudRateValue = baudRateInput.value.trim();
@@ -272,6 +274,13 @@ function closePort(portNumber) {
   }
 }
 
+function importMessages(messages) {
+  messages.forEach(msg => {
+    const messageText = msg.message;
+    displayMessage(messageText, 'imported');
+  });
+}
+
 function displayMessage(message, type = 'received') {
   const parsedMessage = parseMessage(message);
   if (!parsedMessage) {
@@ -308,11 +317,12 @@ function displayMessage(message, type = 'received') {
     updateWaveformDisplay(socketid, content);
   }
 
-  if (type === 'sent' && !allMessages.includes(message)) {
+  if (type === 'imported' && !allMessages.includes(message)) {
     addToMessageList(message, type);
     allMessages.push(message);
   }
 }
+
 
 function parseMessage(message) {
   console.log(`Parsing message: ${message}`);
