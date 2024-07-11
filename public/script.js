@@ -311,6 +311,7 @@ function displayMessage(message, type = 'received') {
   }
 }
 
+
 function parseMessage(message) {
   console.log(`Parsing message: ${message}`);
   const commaIndex = message.indexOf(',');
@@ -321,7 +322,6 @@ function parseMessage(message) {
   }
   return null;
 }
-
 function updateWaveformDisplay(socketid, message) {
   const targetBox = Array.from(waveformBoxes).find(box => box.getAttribute('socketid') === socketid);
 
@@ -331,7 +331,8 @@ function updateWaveformDisplay(socketid, message) {
   }
 
   // Clear the target box except for the index label
-  targetBox.innerHTML = `<div class="index-label">${indexLabels[socketid] || socketid}</div>`; // Use the updated label
+  const currentLabel = indexLabels[socketid] || socketid;
+  targetBox.innerHTML = `<div class="index-label">${currentLabel}</div>`; // Use the updated label
 
   const fragmentSCL = document.createDocumentFragment();
   const fragmentSDA = document.createDocumentFragment();
@@ -461,6 +462,7 @@ function updateWaveformDisplay(socketid, message) {
   const indexLabel = targetBox.querySelector('.index-label');
   makeIndexLabelEditable(indexLabel, socketid);
 }
+
 
 socket.on('disconnectAll', (reason) => {
   alert(reason);
