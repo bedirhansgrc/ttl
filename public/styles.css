@@ -512,7 +512,7 @@ button[type="submit"]:hover {
   overflow-y: hidden;
   display: block;
   width: max-content; 
-  white-space: nowrap; 
+  white-space: nowrap;
 }
 
 .waveform-row {
@@ -600,10 +600,14 @@ button[type="submit"]:hover {
   background-color: #0056b3;
 }
 .index-label {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
   background-color: #f0f0f0;
   border-radius: 5px;
   padding: 5px;
-  margin-bottom: 5px;
+  margin: 10px;
   user-select: none;
   cursor: pointer;
 }
