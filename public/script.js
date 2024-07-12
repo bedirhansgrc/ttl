@@ -573,16 +573,6 @@ function resendMessage(message) {
   sendMessage(message);
 }
 
-function binaryToAscii(binaryStr) {
-  let asciiStr = '';
-  for (let i = 0; i < binaryStr.length; i += 8) {
-    let byte = binaryStr.slice(i, i + 8);
-    let charCode = parseInt(byte, 2);
-    asciiStr += String.fromCharCode(charCode);
-  }
-  return asciiStr;
-}
-
 async function sendMessage(message, isPortMessage = false) {
   if (!baudRate || ports.length === 0) {
     alert('Please set the baud rate and connect to a serial port before sending a message.');
