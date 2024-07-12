@@ -354,132 +354,89 @@ function parseMessage(message) {
 }
 
 function updateWaveformDisplay(socketid, message) {
-  // socketid'yi string olarak saklayıp karşılaştır
+  // Find the target box
   const targetBox = Array.from(waveformBoxes).find(box => box.getAttribute('socketid') === socketid);
-
   if (!targetBox) {
-    console.warn(`No waveform box found for socketid ${socketid}`);
-    return;
+      console.warn(`No waveform box found for socketid ${socketid}`);
+      return;
   }
 
   // Clear the target box except for the index label
-  targetBox.innerHTML = `<div class="index-label">${indexLabels[socketid] || socketid}</div>`; // Değiştirilen değeri kullan
+  targetBox.innerHTML = `<div class="index-label">${indexLabels[socketid] || socketid}</div>`;
 
-  const fragmentSCL = document.createDocumentFragment();
   const fragmentSDA = document.createDocumentFragment();
   const fragmentHex = document.createDocumentFragment();
-
-  const borderWidth = '2px';
-
-  for (let i = 0; i < message.length * 2; i++) {
-    const bitContainer = document.createElement('div');
-    bitContainer.style.display = 'inline-block';
-    bitContainer.style.position = 'relative';
-    bitContainer.style.height = '50px';
-    bitContainer.style.width = '10px';
-    const verticalLine = document.createElement('div');
-    verticalLine.style.position = 'absolute';
-    verticalLine.style.width = borderWidth;
-    verticalLine.style.backgroundColor = 'grey';
-
-    const horizontalLine = document.createElement('div');
-    horizontalLine.style.position = 'absolute';
-    horizontalLine.style.height = borderWidth;
-    horizontalLine.style.width = '100%';
-
-    if (i % 2 === 0) {
-      horizontalLine.style.top = '0';
-      horizontalLine.style.backgroundColor = 'blue';
-      verticalLine.style.bottom = '0';
-      verticalLine.style.height = '100%';
-    } else {
-      horizontalLine.style.bottom = '0';
-      horizontalLine.style.backgroundColor = 'blue';
-      verticalLine.style.top = '0';
-      verticalLine.style.height = '100%';
-    }
-
-    bitContainer.appendChild(verticalLine);
-    bitContainer.appendChild(horizontalLine);
-    fragmentSCL.appendChild(bitContainer);
-  }
 
   let previousBit = null;
   let hexIndex = 0;
   for (let i = 0; i < message.length; i++) {
-    const bit = message[i];
+      const bit = message[i];
 
-    const bitContainer = document.createElement('div');
-    bitContainer.style.display = 'inline-block';
-    bitContainer.style.position = 'relative';
-    bitContainer.style.height = '70px';
-    bitContainer.style.width = '20px';
+      const bitContainer = document.createElement('div');
+      bitContainer.style.display = 'inline-block';
+      bitContainer.style.position = 'relative';
+      bitContainer.style.height = '70px';
+      bitContainer.style.width = '20px';
 
-    const verticalLine = document.createElement('div');
-    verticalLine.style.position = 'absolute';
-    verticalLine.style.width = borderWidth;
-    verticalLine.style.backgroundColor = 'grey';
+      const verticalLine = document.createElement('div');
+      verticalLine.style.position = 'absolute';
+      verticalLine.style.width = '2px';
+      verticalLine.style.backgroundColor = 'grey';
 
-    const horizontalLine = document.createElement('div');
-    horizontalLine.style.position = 'absolute';
-    horizontalLine.style.height = borderWidth;
-    horizontalLine.style.width = '100%';
+      const horizontalLine = document.createElement('div');
+      horizontalLine.style.position = 'absolute';
+      horizontalLine.style.height = '2px';
+      horizontalLine.style.width = '100%';
 
-    if (bit === '0') {
-      horizontalLine.style.bottom = '20px';
-      horizontalLine.style.backgroundColor = 'red';
-      if (previousBit === '1') {
-        verticalLine.style.top = '0';
-        verticalLine.style.height = 'calc(100% - 20px)';
-      } else {
-        verticalLine.style.display = 'none';
+      if (bit === '0') {
+          horizontalLine.style.bottom = '20px';
+          horizontalLine.style.backgroundColor = 'red';
+          if (previousBit === '1') {
+              verticalLine.style.top = '0';
+              verticalLine.style.height = 'calc(100% - 20px)';
+          } else {
+              verticalLine.style.display = 'none';
+          }
+      } else if (bit === '1') {
+          horizontalLine.style.top = '0';
+          horizontalLine.style.backgroundColor = 'green';
+          if (previousBit === '0') {
+              verticalLine.style.bottom = '20px';
+              verticalLine.style.height = 'calc(100% - 20px)';
+          } else {
+              verticalLine.style.display = 'none';
+          }
       }
-    } else if (bit === '1') {
-      horizontalLine.style.top = '0';
-      horizontalLine.style.backgroundColor = 'green';
-      if (previousBit === '0') {
-        verticalLine.style.bottom = '20px';
-        verticalLine.style.height = 'calc(100% - 20px)';
-      } else {
-        verticalLine.style.display = 'none';
+
+      const bitLabel = document.createElement('div');
+      bitLabel.style.position = 'absolute';
+      bitLabel.style.bottom = '0';
+      bitLabel.style.width = '100%';
+      bitLabel.style.textAlign = 'center';
+      bitLabel.innerText = bit;
+
+      bitContainer.appendChild(verticalLine);
+      bitContainer.appendChild(horizontalLine);
+      bitContainer.appendChild(bitLabel);
+
+      fragmentSDA.appendChild(bitContainer);
+
+      if ((i + 1) % 8 === 0) {
+          const byte = message.slice(i - 7, i + 1);
+          const hexValue = parseInt(byte, 2).toString(16).toUpperCase();
+          const hexContainer = document.createElement('div');
+          hexContainer.classList.add('hex-box');
+          hexContainer.innerText = hexValue;
+          fragmentHex.appendChild(hexContainer);
+          hexIndex++;
       }
-    }
 
-    const bitLabel = document.createElement('div');
-    bitLabel.style.position = 'absolute';
-    bitLabel.style.bottom = '0';
-    bitLabel.style.width = '100%';
-    bitLabel.style.textAlign = 'center';
-    bitLabel.innerText = bit;
-
-    bitContainer.appendChild(verticalLine);
-    bitContainer.appendChild(horizontalLine);
-    bitContainer.appendChild(bitLabel);
-
-    fragmentSDA.appendChild(bitContainer);
-
-    if ((i + 1) % 8 === 0) {
-      const byte = message.slice(i - 7, i + 1);
-      const hexValue = parseInt(byte, 2).toString(16).toUpperCase();
-      const hexContainer = document.createElement('div');
-      hexContainer.classList.add('hex-box');
-      hexContainer.innerText = hexValue;
-      fragmentHex.appendChild(hexContainer);
-      hexIndex++;
-    }
-
-    previousBit = bit;
+      previousBit = bit;
   }
-
-  const sclWaveform = document.createElement('div');
-  sclWaveform.classList.add('waveform-row');
-  sclWaveform.innerHTML = '<div class="waveform-label">SCL:</div>';
-  sclWaveform.appendChild(fragmentSCL);
-  targetBox.appendChild(sclWaveform);
 
   const sdaWaveform = document.createElement('div');
   sdaWaveform.classList.add('waveform-row');
-  sdaWaveform.innerHTML = '<div class="waveform-label">SDA:</div>';
+  sdaWaveform.innerHTML = '<div class="waveform-label"></div>';
   sdaWaveform.appendChild(fragmentSDA);
   targetBox.appendChild(sdaWaveform);
 
@@ -492,31 +449,29 @@ function updateWaveformDisplay(socketid, message) {
   // Add event listeners to make index labels editable again
   const indexLabel = targetBox.querySelector('.index-label');
   indexLabel.addEventListener('click', () => {
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = indexLabel.innerText;
-    input.classList.add('index-input');
-    
-    input.addEventListener('blur', () => {
-      indexLabel.innerText = input.value;
-      indexLabels[socketid] = input.value; // Değiştirilen değeri sakla
-      indexLabel.style.display = 'block';
-      input.remove();
-    });
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = indexLabel.innerText;
+      input.classList.add('index-input');
+      
+      input.addEventListener('blur', () => {
+          indexLabel.innerText = input.value;
+          indexLabels[socketid] = input.value;
+          indexLabel.style.display = 'block';
+          input.remove();
+      });
 
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        input.blur();
-      }
-    });
+      input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+              input.blur();
+          }
+      });
 
-    indexLabel.style.display = 'none';
-    targetBox.appendChild(input);
-    input.focus();
+      indexLabel.style.display = 'none';
+      targetBox.appendChild(input);
+      input.focus();
   });
 }
-
-
 socket.on('disconnectAll', (reason) => {
   alert(reason);
   disconnectAllPorts();
