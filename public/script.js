@@ -272,13 +272,6 @@ function closePort(portNumber) {
   }
 }
 
-function importMessages(messages) {
-  messages.forEach(msg => {
-    const messageText = msg.message;
-    displayMessage(messageText, 'imported');
-  });
-}
-
 function displayMessage(message, type = 'received') {
   const parsedMessage = parseMessage(message);
   if (!parsedMessage) {
@@ -315,28 +308,11 @@ function displayMessage(message, type = 'received') {
     updateWaveformDisplay(socketid, content);
   }
 
-  if (type === 'imported' && !allMessages.includes(message)) {
+  if (type === 'sent' && !allMessages.includes(message)) {
     addToMessageList(message, type);
     allMessages.push(message);
   }
 }
-
-importFile.addEventListener('change', (event) => {
-  const file = event.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      try {
-        const messages = JSON.parse(e.target.result);
-        importMessages(messages);
-      } catch (error) {
-        console.error('JSON parse error:', error);
-        alert('Invalid JSON file');
-      }
-    };
-    reader.readAsText(file);
-  }
-});
 
 function parseMessage(message) {
   console.log(`Parsing message: ${message}`);
