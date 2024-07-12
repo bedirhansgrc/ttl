@@ -1,7 +1,7 @@
-import Swal from 'sweetalert2';
 const socket = io();
 const connectButton = document.getElementById('connectButton');
 const disconnectButton = document.getElementById('disconnectButton');
+const portSelect = document.getElementById('portSelect');
 const dataDiv = document.getElementById('data');
 const baudRateInput = document.getElementById('baudRateInput');
 const setBaudRateButton = document.getElementById('setBaudRateButton');
@@ -12,6 +12,7 @@ const stopEmulatorButton = document.getElementById('stopEmulatorButton');
 const importButton = document.getElementById('importButton');
 const importFile = document.getElementById('importFile');
 const waveformBoxes = document.querySelectorAll('.waveform-box');
+const waveformDisplayContainer = document.getElementById('waveformDisplayContainer');
 const form = document.getElementById('messageForm');
 const indexLabels = {};
 let baudRate;
@@ -25,13 +26,13 @@ let activePorts = {};
 let isConnected = false;
 let connectedBaudRates = [];
 let portIds = [];
+let waveformCount = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
   const uartLink = document.getElementById('uartLink');
   const logicLink = document.getElementById('logicLink');
   const uartViewer = document.getElementById('uart-viewer');
   const logicAnalyzer = document.getElementById('logic-analyzer');
-  const waveformBoxes = document.querySelectorAll('.waveform-box');
 
   uartLink.addEventListener('click', () => {
     uartViewer.style.display = 'flex';
@@ -51,38 +52,40 @@ document.addEventListener('DOMContentLoaded', () => {
   logicAnalyzer.style.display = 'none';
   uartLink.classList.add('active');
 
-  // Initialize index labels for each waveform box
+  // Add event listeners to make index labels editable
   waveformBoxes.forEach(box => {
     const indexLabel = box.querySelector('.index-label');
     const socketId = box.getAttribute('socketid');
     if (indexLabels[socketId]) {
       indexLabel.innerText = indexLabels[socketId];
     }
-    makeIndexLabelEditable(indexLabel, socketId);
+    indexLabel.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = indexLabel.innerText;
+      input.classList.add('index-input');
+      
+      input.addEventListener('blur', () => {
+        indexLabel.innerText = input.value;
+        indexLabels[socketId] = input.value; // Değiştirilen değeri sakla
+        indexLabel.style.display = 'block';
+        input.remove();
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          input.blur();
+        }
+      });
+
+      indexLabel.style.display = 'none';
+      box.appendChild(input);
+      input.focus();
+    });
   });
 });
 
-function makeIndexLabelEditable(labelElement, socketId) {
-  labelElement.addEventListener('click', async () => {
-    const { value: newLabel } = await Swal.fire({
-      title: 'Enter new index',
-      input: 'text',
-      inputLabel: 'New Index',
-      inputValue: labelElement.innerText,
-      showCancelButton: true,
-      inputValidator: (value) => {
-        if (!value) {
-          return 'You need to write something!';
-        }
-      }
-    });
 
-    if (newLabel) {
-      labelElement.innerText = newLabel;
-      indexLabels[socketId] = newLabel; // Save the changed value
-    }
-  });
-}
 
 importButton.addEventListener('click', () => {
   importFile.click();
@@ -311,7 +314,6 @@ function displayMessage(message, type = 'received') {
   }
 }
 
-
 function parseMessage(message) {
   console.log(`Parsing message: ${message}`);
   const commaIndex = message.indexOf(',');
@@ -322,7 +324,9 @@ function parseMessage(message) {
   }
   return null;
 }
+
 function updateWaveformDisplay(socketid, message) {
+  // socketid'yi string olarak saklayıp karşılaştır
   const targetBox = Array.from(waveformBoxes).find(box => box.getAttribute('socketid') === socketid);
 
   if (!targetBox) {
@@ -331,8 +335,7 @@ function updateWaveformDisplay(socketid, message) {
   }
 
   // Clear the target box except for the index label
-  const currentLabel = indexLabels[socketid] || socketid;
-  targetBox.innerHTML = `<div class="index-label">${currentLabel}</div>`; // Use the updated label
+  targetBox.innerHTML = `<div class="index-label">${indexLabels[socketid] || socketid}</div>`; // Değiştirilen değeri kullan
 
   const fragmentSCL = document.createDocumentFragment();
   const fragmentSDA = document.createDocumentFragment();
@@ -460,7 +463,29 @@ function updateWaveformDisplay(socketid, message) {
 
   // Add event listeners to make index labels editable again
   const indexLabel = targetBox.querySelector('.index-label');
-  makeIndexLabelEditable(indexLabel, socketid);
+  indexLabel.addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = indexLabel.innerText;
+    input.classList.add('index-input');
+    
+    input.addEventListener('blur', () => {
+      indexLabel.innerText = input.value;
+      indexLabels[socketid] = input.value; // Değiştirilen değeri sakla
+      indexLabel.style.display = 'block';
+      input.remove();
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        input.blur();
+      }
+    });
+
+    indexLabel.style.display = 'none';
+    targetBox.appendChild(input);
+    input.focus();
+  });
 }
 
 
@@ -571,6 +596,16 @@ function togglePinMessage(messageItem) {
 
 function resendMessage(message) {
   sendMessage(message);
+}
+
+function binaryToAscii(binaryStr) {
+  let asciiStr = '';
+  for (let i = 0; i < binaryStr.length; i += 8) {
+    let byte = binaryStr.slice(i, i + 8);
+    let charCode = parseInt(byte, 2);
+    asciiStr += String.fromCharCode(charCode);
+  }
+  return asciiStr;
 }
 
 async function sendMessage(message, isPortMessage = false) {
